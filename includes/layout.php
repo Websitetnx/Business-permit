@@ -13,16 +13,16 @@ function render_app_header(string $title, string $active): void
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="PermitFlow business permit application and renewal portal.">
-  <title><?= e($title) ?> | PermitFlow</title>
+  <meta name="description" content="ERMIT web-based business permit management system.">
+  <title><?= e($title) ?> | ERMIT</title>
   <link rel="stylesheet" href="<?= e(url('styles.css')) ?>">
+  <link rel="icon" type="image/png" href="<?= e(url('assets/logo.png')) ?>">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-      <a class="brand" href="<?= e(url($isAdmin ? 'admin/index.php' : 'dashboard.php')) ?>">
-        <span class="brand-mark" aria-hidden="true">P</span>
-        <span><strong>PermitFlow</strong><small>Business Permit Portal</small></span>
+      <a class="brand brand-logo-link" href="<?= e(url($isAdmin ? 'admin/index.php' : 'dashboard.php')) ?>">
+        <img class="brand-logo" src="<?= e(url('assets/logo.png')) ?>" alt="ERMIT — Web-Based Business Permit Management System">
       </a>
       <nav>
         <p class="nav-label"><?= $isAdmin ? 'LGU administrator' : 'Applicant portal' ?></p>

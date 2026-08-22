@@ -33,10 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Create account | PermitFlow</title><link rel="stylesheet" href="styles.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Create account | ERMIT</title><link rel="stylesheet" href="styles.css"><link rel="icon" type="image/png" href="assets/logo.png"></head>
 <body class="auth-page">
   <main class="auth-shell">
-    <section class="auth-visual"><a class="brand" href="index.php"><span class="brand-mark">P</span><span><strong>PermitFlow</strong><small>Business Permit Portal</small></span></a><div><p class="eyebrow light">Applicant registration</p><h1>Create one secure permit account.</h1><p>Your applications, renewals, documents, and status history remain connected to your account.</p></div><ul class="auth-points"><li>✓ Apply for a new permit</li><li>✓ Renew an approved permit</li><li>✓ Track LGU review updates</li></ul></section>
+    <section class="auth-visual"><a class="brand brand-logo-link auth-brand" href="index.php"><img class="brand-logo" src="assets/logo.png" alt="ERMIT — Web-Based Business Permit Management System"></a><div><p class="eyebrow light">Applicant registration</p><h1>Create one secure permit account.</h1><p>Your applications, renewals, documents, and status history remain connected to your account.</p></div><ul class="auth-points"><li>✓ Apply for a new permit</li><li>✓ Renew an approved permit</li><li>✓ Track LGU review updates</li></ul></section>
     <section class="auth-card">
       <div><p class="eyebrow">Get started</p><h2>Create applicant account</h2><p class="muted">Administrator roles cannot be selected during public registration.</p></div>
       <?php if ($errors): ?><div class="form-alert form-alert-error"><ul><?php foreach ($errors as $message): ?><li><?= e($message) ?></li><?php endforeach; ?></ul></div><?php endif; ?>

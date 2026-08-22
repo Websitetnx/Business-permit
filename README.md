@@ -1,6 +1,6 @@
-# PermitFlow — PHP Business Permit Portal
+# ERMIT — Web-Based Business Permit Management System
 
-PermitFlow is a PHP 8 and MySQL application for applicant registration, secure sign-in, new business-permit applications, permit renewal, document submission, status tracking, and LGU administrator review.
+ERMIT is a PHP 8 and MySQL application for applicant registration, secure sign-in, new business-permit applications, permit renewal, document submission, status tracking, and LGU administrator review.
 
 ## Included features
 

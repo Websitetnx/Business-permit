@@ -42,10 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $databaseReady && !$adminExists) {
 ?>
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Administrator setup | PermitFlow</title><link rel="stylesheet" href="styles.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Administrator setup | ERMIT</title><link rel="stylesheet" href="styles.css"><link rel="icon" type="image/png" href="assets/logo.png"></head>
 <body class="auth-page simple-auth">
   <main class="auth-card setup-card">
-    <a class="auth-logo" href="login.php"><span class="brand-mark">P</span><strong>PermitFlow</strong></a>
+    <a class="auth-logo auth-logo-image" href="login.php"><img src="assets/logo.png" alt="ERMIT — Web-Based Business Permit Management System"></a>
     <div><p class="eyebrow">One-time setup</p><h1>Create administrator account</h1></div>
     <?php if (!$databaseReady): ?>
       <div class="form-alert form-alert-error">The database is not ready. Import <strong>database/schema.sql</strong>, update <strong>config.php</strong>, then reload this page.</div>

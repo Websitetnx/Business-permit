@@ -26,11 +26,11 @@ $flashes = pull_flashes();
 ?>
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign in | PermitFlow</title><link rel="stylesheet" href="styles.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign in | ERMIT</title><link rel="stylesheet" href="styles.css"><link rel="icon" type="image/png" href="assets/logo.png"></head>
 <body class="auth-page">
   <main class="auth-shell">
     <section class="auth-visual">
-      <a class="brand" href="index.php"><span class="brand-mark">P</span><span><strong>PermitFlow</strong><small>Business Permit Portal</small></span></a>
+      <a class="brand brand-logo-link auth-brand" href="index.php"><img class="brand-logo" src="assets/logo.png" alt="ERMIT — Web-Based Business Permit Management System"></a>
       <div><p class="eyebrow light">City Government Services</p><h1>Business permits, without the long lines.</h1><p>Apply, upload requirements, renew permits, and track every update through one secure account.</p></div>
       <ul class="auth-points"><li>✓ Secure applicant accounts</li><li>✓ Online permit applications</li><li>✓ Real-time status tracking</li></ul>
     </section>
