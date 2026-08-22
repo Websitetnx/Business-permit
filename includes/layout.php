@@ -29,6 +29,7 @@ function render_app_header(string $title, string $active): void
         <?php if ($isAdmin): ?>
           <a class="<?= $active === 'admin-dashboard' ? 'active' : '' ?>" href="<?= e(url('admin/index.php')) ?>"><span>⌂</span> Overview</a>
           <a class="<?= $active === 'review' ? 'active' : '' ?>" href="<?= e(url('admin/index.php#queue')) ?>"><span>☷</span> Review queue</a>
+          <a class="<?= $active === 'analytics' ? 'active' : '' ?>" href="<?= e(url('admin/analytics.php')) ?>"><span>⌁</span> AI analytics</a>
           <a class="<?= $active === 'users' ? 'active' : '' ?>" href="<?= e(url('admin/users.php')) ?>"><span>♙</span> User accounts</a>
         <?php else: ?>
           <a class="<?= $active === 'dashboard' ? 'active' : '' ?>" href="<?= e(url('dashboard.php')) ?>"><span>⌂</span> Dashboard</a>

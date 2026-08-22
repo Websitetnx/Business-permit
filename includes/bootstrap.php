@@ -15,6 +15,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/openai.php';
+require_once __DIR__ . '/analytics.php';
+
+date_default_timezone_set((string) app_config('timezone'));
 
 if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
