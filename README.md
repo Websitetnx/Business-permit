@@ -6,6 +6,7 @@ A responsive, dependency-free prototype for applying for, renewing, tracking, an
 
 - Applicant dashboard with application summaries
 - Three-step new permit application with field and file validation
+- Four standard and ten conditional permit-document uploads based on the provided BPLO/BFP checklist
 - Existing permit lookup and renewal flow
 - Application tracking timeline
 - LGU overview, searchable review queue, approval, and revision workflow
