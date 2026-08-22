@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PermitFlow — a business permit application and renewal portal for applicants and LGU staff.">
+  <title>PermitFlow | Business Permit Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#dashboard" aria-label="PermitFlow home">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span><strong>PermitFlow</strong><small>Business Permit Portal</small></span>
+      </a>
+
+      <div class="role-switcher">
+        <label for="roleSelect">Viewing as</label>
+        <select id="roleSelect">
+          <option value="applicant">Business Applicant</option>
+          <option value="staff">LGU Staff</option>
+        </select>
+      </div>
+
+      <nav id="applicantNav">
+        <p class="nav-label">Applicant portal</p>
+        <a href="#dashboard" data-route="dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
+        <a href="#apply" data-route="apply"><span aria-hidden="true">＋</span> New application</a>
+        <a href="#renew" data-route="renew"><span aria-hidden="true">↻</span> Renew permit</a>
+        <a href="#track" data-route="track"><span aria-hidden="true">◎</span> Track application</a>
+      </nav>
+
+      <nav id="staffNav" hidden>
+        <p class="nav-label">LGU workspace</p>
+        <a href="#staff-dashboard" data-route="staff-dashboard"><span aria-hidden="true">⌂</span> Overview</a>
+        <a href="#review-queue" data-route="review-queue"><span aria-hidden="true">☷</span> Review queue</a>
+      </nav>
+
+      <div class="sidebar-help">
+        <span aria-hidden="true">?</span>
+        <div><strong>Need help?</strong><small>BPLO Help Desk<br>(033) 333-1111</small></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">☰</button>
+        <div>
+          <p class="eyebrow">City Government Services</p>
+          <h1 id="pageTitle">Dashboard</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-button notification-button" id="notificationButton" type="button" aria-label="Notifications">♢<span class="notification-dot"></span></button>
+          <div class="avatar">PP</div>
+          <div class="profile-copy"><strong>Patrick Patricio</strong><small id="profileRole">Applicant</small></div>
+        </div>
+      </header>
+
+      <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+
+      <section class="page active" id="dashboard" data-title="Dashboard">
+        <div class="welcome-card">
+          <div>
+            <p class="eyebrow light">Welcome back, Patrick</p>
+            <h2>Manage your permits without the long lines.</h2>
+            <p>Submit requirements, monitor progress, and receive updates in one secure place.</p>
+            <a class="button button-light" href="#apply">Start new application <span aria-hidden="true">→</span></a>
+          </div>
+          <div class="welcome-art" aria-hidden="true"><span>✓</span></div>
+        </div>
+
+        <div class="section-heading">
+          <div><p class="eyebrow">At a glance</p><h2>Your permit activity</h2></div>
+          <p class="muted" id="todayLabel"></p>
+        </div>
+        <div class="stat-grid" id="applicantStats"></div>
+
+        <div class="content-grid">
+          <article class="panel">
+            <div class="panel-header"><div><p class="eyebrow">Applications</p><h3>Recent activity</h3></div><a href="#track">View all</a></div>
+            <div class="application-list" id="recentApplications"></div>
+          </article>
+          <aside class="panel checklist-panel">
+            <div class="panel-header"><div><p class="eyebrow">Before you apply</p><h3>Requirements checklist</h3></div></div>
+            <ul class="checklist">
+              <li><span>✓</span> DTI / SEC / CDA registration</li>
+              <li><span>✓</span> Barangay business clearance</li>
+              <li><span>✓</span> Proof of ownership or lease</li>
+              <li><span>✓</span> Valid government-issued ID</li>
+            </ul>
+            <p class="hint">Accepted files: PDF, JPG, or PNG up to 5 MB each.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="apply" data-title="New Business Permit">
+        <div class="section-heading">
+          <div><p class="eyebrow">New application</p><h2>Apply for a business permit</h2><p class="muted">Complete all steps. You can review everything before submission.</p></div>
+          <span class="secure-badge">◆ Secure form</span>
+        </div>
+        <ol class="stepper" aria-label="Application progress">
+          <li class="active" data-step-indicator="1"><span>1</span><div><strong>Business details</strong><small>Basic information</small></div></li>
+          <li data-step-indicator="2"><span>2</span><div><strong>Requirements</strong><small>Upload documents</small></div></li>
+          <li data-step-indicator="3"><span>3</span><div><strong>Review</strong><small>Confirm and submit</small></div></li>
+        </ol>
+        <form id="applicationForm" novalidate>
+          <div class="form-step active" data-form-step="1">
+            <div class="panel form-panel">
+              <div class="panel-header"><div><p class="eyebrow">Step 1 of 3</p><h3>Business information</h3></div></div>
+              <div class="form-grid">
+                <label class="field field-wide">Registered business name<input name="businessName" autocomplete="organization" required placeholder="e.g., Sunrise Café"><small class="error"></small></label>
+                <label class="field">Business type<select name="businessType" required><option value="">Select type</option><option>Retail</option><option>Food and Beverage</option><option>Professional Services</option><option>Manufacturing</option><option>Other</option></select><small class="error"></small></label>
+                <label class="field">Organization type<select name="organizationType" required><option value="">Select organization</option><option>Sole Proprietorship</option><option>Partnership</option><option>Corporation</option><option>Cooperative</option></select><small class="error"></small></label>
+                <label class="field">TIN<input name="tin" inputmode="numeric" required placeholder="000-000-000-000" maxlength="15"><small class="error"></small></label>
+                <label class="field">Contact number<input name="contact" type="tel" autocomplete="tel" required placeholder="09XX XXX XXXX"><small class="error"></small></label>
+                <label class="field field-wide">Business address<input name="address" autocomplete="street-address" required placeholder="Building, street, barangay, city"><small class="error"></small></label>
+                <label class="field field-wide">Email address<input name="email" type="email" autocomplete="email" required placeholder="owner@example.com"><small class="error"></small></label>
+              </div>
+            </div>
+            <div class="form-actions"><span></span><button class="button" type="button" data-next-step="2">Continue to requirements →</button></div>
+          </div>
+
+          <div class="form-step" data-form-step="2">
+            <div class="panel form-panel">
+              <div class="panel-header"><div><p class="eyebrow">Step 2 of 3</p><h3>Upload requirements</h3><p class="muted">Do not upload passwords or unrelated personal documents.</p></div></div>
+              <div class="upload-grid">
+                <label class="upload-card"><span class="upload-icon">⇧</span><strong>DTI / SEC / CDA registration</strong><small>PDF, JPG, PNG · Max 5 MB</small><input name="registrationDoc" type="file" accept=".pdf,.jpg,.jpeg,.png" required><em>Choose file</em><small class="error"></small></label>
+                <label class="upload-card"><span class="upload-icon">⇧</span><strong>Barangay business clearance</strong><small>PDF, JPG, PNG · Max 5 MB</small><input name="barangayDoc" type="file" accept=".pdf,.jpg,.jpeg,.png" required><em>Choose file</em><small class="error"></small></label>
+                <label class="upload-card"><span class="upload-icon">⇧</span><strong>Lease contract or land title</strong><small>PDF, JPG, PNG · Max 5 MB</small><input name="propertyDoc" type="file" accept=".pdf,.jpg,.jpeg,.png" required><em>Choose file</em><small class="error"></small></label>
+              </div>
+            </div>
+            <div class="form-actions"><button class="button button-secondary" type="button" data-prev-step="1">← Back</button><button class="button" type="button" data-next-step="3">Review application →</button></div>
+          </div>
+
+          <div class="form-step" data-form-step="3">
+            <div class="panel form-panel">
+              <div class="panel-header"><div><p class="eyebrow">Step 3 of 3</p><h3>Review your application</h3><p class="muted">Check the information below before submitting.</p></div><button class="text-button" type="button" data-prev-step="1">Edit details</button></div>
+              <dl class="review-grid" id="applicationReview"></dl>
+              <label class="declaration"><input name="declaration" type="checkbox" required><span>I certify that the information and documents provided are complete and accurate.</span></label>
+            </div>
+            <div class="form-actions"><button class="button button-secondary" type="button" data-prev-step="2">← Back</button><button class="button" type="submit">Submit application</button></div>
+          </div>
+        </form>
+      </section>
+
+      <section class="page" id="renew" data-title="Renew Business Permit">
+        <div class="section-heading"><div><p class="eyebrow">Permit renewal</p><h2>Renew an existing permit</h2><p class="muted">Enter the permit number to retrieve the latest business record.</p></div></div>
+        <div class="panel lookup-panel">
+          <form id="renewLookupForm" class="lookup-form" novalidate>
+            <label class="field"><span>Business permit number</span><input id="renewPermitNumber" placeholder="Try BP-2026-01482" required></label>
+            <button class="button" type="submit">Find permit</button>
+          </form>
+          <p class="hint">Demo permit: <button class="inline-copy" type="button" data-copy="BP-2026-01482">BP-2026-01482</button></p>
+        </div>
+        <div id="renewResult"></div>
+      </section>
+
+      <section class="page" id="track" data-title="Track Application">
+        <div class="section-heading"><div><p class="eyebrow">Application tracker</p><h2>Know exactly where your permit stands</h2><p class="muted">Use the reference number received after submission.</p></div></div>
+        <div class="panel lookup-panel">
+          <form id="trackingForm" class="lookup-form" novalidate>
+            <label class="field"><span>Application reference</span><input id="trackingReference" placeholder="Try BPL-2026-00124" required></label>
+            <button class="button" type="submit">Track status</button>
+          </form>
+          <p class="hint">Demo reference: <button class="inline-copy" type="button" data-copy="BPL-2026-00124">BPL-2026-00124</button></p>
+        </div>
+        <div id="trackingResult"></div>
+      </section>
+
+      <section class="page" id="staff-dashboard" data-title="LGU Overview">
+        <div class="section-heading"><div><p class="eyebrow">BPLO workspace</p><h2>Application overview</h2><p class="muted">Monitor permit processing and identify items that need attention.</p></div><a class="button" href="#review-queue">Open review queue</a></div>
+        <div class="stat-grid" id="staffStats"></div>
+        <div class="content-grid staff-grid">
+          <article class="panel"><div class="panel-header"><div><p class="eyebrow">Processing health</p><h3>Applications by stage</h3></div></div><div class="bar-chart" id="stageChart"></div></article>
+          <aside class="panel"><div class="panel-header"><div><p class="eyebrow">Service target</p><h3>Processing performance</h3></div></div><div class="performance"><div class="ring"><span>86%</span></div><p><strong>Within target</strong><br><span class="muted">Applications completed within five working days.</span></p></div></aside>
+        </div>
+      </section>
+
+      <section class="page" id="review-queue" data-title="Review Queue">
+        <div class="section-heading"><div><p class="eyebrow">Application management</p><h2>Review queue</h2><p class="muted">Validate submitted records before approval.</p></div></div>
+        <div class="panel table-panel">
+          <div class="table-toolbar">
+            <label class="search-field"><span aria-hidden="true">⌕</span><input id="queueSearch" type="search" placeholder="Search business or reference"></label>
+            <select id="queueFilter" aria-label="Filter by status"><option value="all">All statuses</option><option value="For Review">For Review</option><option value="Needs Revision">Needs Revision</option><option value="Approved">Approved</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Reference</th><th>Business</th><th>Application</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody id="queueBody"></tbody></table></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header"><div><p class="eyebrow">Application review</p><h2 id="modalTitle">Review record</h2></div><button class="icon-button" id="closeModal" type="button" aria-label="Close">×</button></div>
+      <div id="modalContent"></div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
