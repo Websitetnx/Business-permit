@@ -3,6 +3,22 @@
 const STORAGE_KEY = "permitflow-applications-v1";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const VALID_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+const DOCUMENT_FIELDS = [
+  ["registrationDoc", "DTI / SEC / CDA Registration", true],
+  ["bfpApplicationDoc", "BFP Application Form", true],
+  ["bfpQuestionnaireDoc", "BFP Questionnaire", true],
+  ["consentFormDoc", "Consent Form", true],
+  ["leaseContractDoc", "Lease Contract for Private Building", false],
+  ["fsicOccupancyDoc", "FSIC of Occupancy Valid for 9 Months", false],
+  ["occupancyDoc", "Occupancy Permit", false],
+  ["taxDeclarationDoc", "Tax Declaration — Current Year", false],
+  ["healthResultsDoc", "X-Ray Result and Stool Examination", false],
+  ["ngaClearanceDoc", "NGA Clearance", false],
+  ["occupancyAffidavitDoc", "Affidavit in Absence of Occupancy", false],
+  ["buildingOwnerPermitDoc", "Building Owner’s Business Permit", false],
+  ["currentFsicDoc", "FSIC — Current Year", false],
+  ["sanitaryPermitDoc", "Sanitary Permit — Current Year", false]
+];
 
 const seedApplications = [
   { reference: "BPL-2026-00124", permitNumber: "BP-2026-01482", businessName: "Sunrise Demo Café", owner: "Demo Applicant", type: "Renewal", businessType: "Food and Beverage", submitted: "2026-08-19", status: "For Review", stage: 2, address: "Demo District, Sample City", email: "applicant@example.invalid", contact: "Demo contact" },
@@ -139,7 +155,7 @@ function validateField(field) {
     const file = field.files[0];
     if (field.required && !file) message = "This document is required.";
     else if (file && file.size > MAX_FILE_SIZE) message = "File must be 5 MB or smaller.";
-    else if (file && !VALID_FILE_TYPES.includes(file.type)) message = "Use PDF, JPG, or PNG only.";
+    else if (file && !VALID_FILE_TYPES.includes(file.type) && !/\.(pdf|jpe?g|png)$/i.test(file.name)) message = "Use PDF, JPG, or PNG only.";
   } else if (!field.value.trim()) message = "This field is required.";
   else if (field.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field.value)) message = "Enter a valid email address.";
   else if (field.name === "tin" && !/^\d{3}-?\d{3}-?\d{3}(?:-?\d{3})?$/.test(field.value.replace(/\s/g, ""))) message = "Enter a valid 9 or 12-digit TIN.";
@@ -151,11 +167,22 @@ function validateField(field) {
 
 function validateStep(stepNumber) {
   const step = $(`[data-form-step="${stepNumber}"]`);
-  const fields = $$('input[required], select[required]', step).filter(field => field.name !== "declaration");
+  const fields = $$('input[required], select[required], input[type="file"]', step).filter(field => field.name !== "declaration");
   const results = fields.map(validateField);
-  const firstInvalid = fields[results.indexOf(false)];
+  let occupancyChoiceValid = true;
+  if (stepNumber === 2) {
+    const occupancy = step.querySelector('[name="occupancyDoc"]');
+    const affidavit = step.querySelector('[name="occupancyAffidavitDoc"]');
+    occupancyChoiceValid = Boolean(occupancy.files[0] || affidavit.files[0]);
+    if (!occupancyChoiceValid) {
+      const wrapper = occupancy.closest(".upload-card");
+      wrapper.classList.add("invalid");
+      $(".error", wrapper).textContent = "Upload this document or the affidavit alternative.";
+    }
+  }
+  const firstInvalid = fields[results.indexOf(false)] || (!occupancyChoiceValid ? step.querySelector('[name="occupancyDoc"]') : null);
   firstInvalid?.focus();
-  return results.every(Boolean);
+  return results.every(Boolean) && occupancyChoiceValid;
 }
 
 function showFormStep(stepNumber) {
@@ -171,12 +198,16 @@ function showFormStep(stepNumber) {
 
 function renderApplicationReview() {
   const data = new FormData($("#applicationForm"));
-  const entries = [
+  const businessEntries = [
     ["Business name", data.get("businessName")], ["Business type", data.get("businessType")],
     ["Organization", data.get("organizationType")], ["TIN", data.get("tin")],
-    ["Contact", data.get("contact")], ["Email", data.get("email")], ["Address", data.get("address")],
-    ["Registration", data.get("registrationDoc")?.name], ["Barangay clearance", data.get("barangayDoc")?.name], ["Property document", data.get("propertyDoc")?.name]
+    ["Contact", data.get("contact")], ["Email", data.get("email")], ["Address", data.get("address")]
   ];
+  const documentEntries = DOCUMENT_FIELDS.map(([name, label, required]) => {
+    const file = data.get(name);
+    return [label, file?.name || (required ? "Required document missing" : "Not provided — if applicable")];
+  });
+  const entries = [...businessEntries, ...documentEntries];
   $("#applicationReview").innerHTML = entries.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHTML(value || "—")}</dd></div>`).join("");
 }
 
@@ -289,6 +320,14 @@ $("#applicationForm").addEventListener("change", event => {
   const file = event.target.files[0];
   card.classList.toggle("has-file", Boolean(file));
   $("em", card).textContent = file ? file.name : "Choose file";
+  if (["occupancyDoc", "occupancyAffidavitDoc"].includes(event.target.name)) {
+    const pair = [$("[name=\"occupancyDoc\"]"), $("[name=\"occupancyAffidavitDoc\"]")];
+    if (pair.some(input => input.files[0])) pair.forEach(input => {
+      const wrapper = input.closest(".upload-card");
+      wrapper.classList.remove("invalid");
+      $(".error", wrapper).textContent = "";
+    });
+  }
 });
 $("#applicationForm").addEventListener("submit", handleApplicationSubmit);
 $("#trackingForm").addEventListener("submit", event => { event.preventDefault(); renderTracking($("#trackingReference").value); });
