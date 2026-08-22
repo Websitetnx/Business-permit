@@ -11,8 +11,8 @@ const seedApplications = [
   { reference: "BPL-2026-00072", permitNumber: "BP-2026-00851", businessName: "Demo Printshop", owner: "Sample Applicant B", type: "New", businessType: "Professional Services", submitted: "2026-08-06", status: "Released", stage: 4, address: "Sample District B, Sample City", email: "sample-b@example.invalid", contact: "Demo contact" }
 ];
 
-const $ = (selector, root = document) => root.querySelector(selector);
-const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const $ = (selector, root = document) => root ? root.querySelector(selector) : null;
+const $$ = (selector, root = document) => root ? [...root.querySelectorAll(selector)] : [];
 
 function safeLoadApplications() {
   try {
