@@ -1,34 +1,87 @@
-# PermitFlow — Business Permit Portal
+# PermitFlow — PHP Business Permit Portal
 
-A responsive, dependency-free prototype for applying for, renewing, tracking, and reviewing business permits. It supports two demonstration roles: Business Applicant and LGU Staff.
+PermitFlow is a PHP 8 and MySQL application for applicant registration, secure sign-in, new business-permit applications, permit renewal, document submission, status tracking, and LGU administrator review.
 
-## Features
+## Included features
 
-- Applicant dashboard with application summaries
-- Three-step new permit application with field and file validation
-- Four standard and ten conditional permit-document uploads based on the provided BPLO/BFP checklist
-- Existing permit lookup and renewal flow
-- Application tracking timeline
-- LGU overview, searchable review queue, approval, and revision workflow
-- Mobile navigation and accessible form states
-- Browser persistence through `localStorage`
-- Defensive handling of corrupt browser data and escaped user-provided content
+- Applicant sign-up and sign-in using PHP sessions
+- Password hashing with `password_hash()` and `password_verify()`
+- One-time first-administrator setup that locks after use
+- Additional administrator creation from the protected admin workspace
+- Role-based authorization for applicant and administrator pages
+- New permit and renewal records stored in MySQL
+- Four standard and ten conditional document uploads
+- Required Occupancy Permit or Affidavit of Undertaking alternative
+- Server-side file type and 5 MB size validation
+- Protected document viewing through an authorized PHP endpoint
+- Applicant status timeline and administrator review queue
+- Approval, release, revision, rejection, notes, notifications, and audit logs
+- CSRF protection and prepared PDO statements
 
-## Run locally
+## Requirements
 
-No dependencies or build process are required.
+- PHP 8.1 or later
+- MySQL 8 or MariaDB 10.5+
+- PHP extensions: `pdo_mysql` and `fileinfo`
+- Apache, Nginx, XAMPP, WAMP, or a similar PHP server
 
-```bash
-python -m http.server 8080
-```
+GitHub Pages cannot run PHP. Deploy this repository to a PHP-capable server.
 
-Then open `http://localhost:8080`.
+## XAMPP setup
 
-## Demo records
+1. Copy the project folder to `C:\xampp\htdocs\Business-permit`.
+2. Start Apache and MySQL in XAMPP.
+3. Open phpMyAdmin and import `database/schema.sql`.
+4. Check the database settings in `config.php`. The defaults use the usual local XAMPP MySQL account:
 
-- Tracking reference: `BPL-2026-00124`
-- Permit number for renewal: `BP-2026-01482`
+   ```php
+   'host' => '127.0.0.1',
+   'name' => 'permitflow',
+   'user' => 'root',
+   'pass' => '',
+   ```
 
-## Important production note
+5. Make sure `storage/uploads` is writable by PHP.
+6. Open `http://localhost/Business-permit/setup-admin.php` and create the first administrator.
+7. Sign in at `http://localhost/Business-permit/login.php`.
 
-This repository is a front-end prototype. A production LGU deployment must replace browser storage with an authenticated server, relational database, malware-scanned secure document storage, audit logs, backups, access controls, official payment integration, and privacy/security review. AI-assisted validation should remain subject to human review.
+The setup page automatically locks after the first administrator account is created. Public sign-up always creates an applicant account.
+
+## Hosted-server configuration
+
+Database values can be supplied using `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASS` environment variables. Before first-admin setup on a non-local server, also set `ADMIN_SETUP_KEY`; the setup page will require that key.
+
+## Main database tables
+
+- `users`
+- `businesses`
+- `applications`
+- `application_documents`
+- `application_status_history`
+- `payments`
+- `notifications`
+- `audit_logs`
+
+## Permit requirements
+
+Standard required uploads:
+
+1. DTI / SEC / CDA Registration
+2. BFP Application Form
+3. BFP Questionnaire
+4. Consent Form
+
+Conditional uploads:
+
+1. Lease Contract for Private Building
+2. FSIC of Occupancy Valid for 9 Months
+3. Occupancy Permit
+4. Tax Declaration — Current Year
+5. X-Ray Result and Stool Examination
+6. NGA Clearance
+7. Affidavit of Undertaking in Absence of Occupancy
+8. Building Owner's Business Permit
+9. Fire Safety Inspection Certificate — Current Year
+10. Sanitary Permit — Current Year
+
+Applicants must submit either the Occupancy Permit or the affidavit alternative.
