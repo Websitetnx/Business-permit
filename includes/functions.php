@@ -27,6 +27,36 @@ function url(string $path = ''): string
     return base_url() . '/' . ltrim($path, '/');
 }
 
+function posted_geolocation(array $source): array
+{
+    $latitudeRaw = trim((string) ($source['latitude'] ?? ''));
+    $longitudeRaw = trim((string) ($source['longitude'] ?? ''));
+    $accuracyRaw = trim((string) ($source['location_accuracy_m'] ?? ''));
+
+    if ($latitudeRaw === '' && $longitudeRaw === '') {
+        return ['latitude' => null, 'longitude' => null, 'accuracy' => null, 'error' => null];
+    }
+    if (!is_numeric($latitudeRaw) || !is_numeric($longitudeRaw)) {
+        return ['latitude' => null, 'longitude' => null, 'accuracy' => null, 'error' => 'Capture the business location again or leave it blank.'];
+    }
+
+    $latitude = (float) $latitudeRaw;
+    $longitude = (float) $longitudeRaw;
+    $accuracy = $accuracyRaw === '' ? null : (is_numeric($accuracyRaw) ? (float) $accuracyRaw : -1.0);
+    if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180 || ($accuracy !== null && ($accuracy < 0 || $accuracy > 100000))) {
+        return ['latitude' => null, 'longitude' => null, 'accuracy' => null, 'error' => 'The captured business location is invalid. Please capture it again.'];
+    }
+
+    return ['latitude' => $latitude, 'longitude' => $longitude, 'accuracy' => $accuracy, 'error' => null];
+}
+
+function openstreetmap_url(mixed $latitude, mixed $longitude): string
+{
+    $lat = number_format((float) $latitude, 7, '.', '');
+    $lng = number_format((float) $longitude, 7, '.', '');
+    return 'https://www.openstreetmap.org/?mlat=' . rawurlencode($lat) . '&mlon=' . rawurlencode($lng) . '#map=18/' . rawurlencode($lat) . '/' . rawurlencode($lng);
+}
+
 function redirect(string $path): never
 {
     header('Location: ' . url($path));

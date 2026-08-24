@@ -9,7 +9,7 @@ if (!$id) {
     exit('Application not found.');
 }
 
-$sql = 'SELECT a.*, b.business_name, b.business_type, b.organization_type, b.tin, b.contact, b.email, b.address, u.name owner_name
+$sql = 'SELECT a.*, b.business_name, b.business_type, b.organization_type, b.tin, b.contact, b.email, b.address, b.latitude, b.longitude, b.location_accuracy_m, b.location_captured_at, u.name owner_name
         FROM applications a JOIN businesses b ON b.id = a.business_id JOIN users u ON u.id = a.user_id WHERE a.id = ?';
 $params = [$id];
 if ($user['role'] !== 'admin') {
@@ -47,6 +47,7 @@ render_app_header('Application Details', $user['role'] === 'admin' ? 'review' : 
     <div><small>TIN</small><strong><?= e($application['tin']) ?></strong></div><div><small>Permit number</small><strong><?= e($application['permit_number'] ?: 'Assigned after approval') ?></strong></div>
     <div><small>Contact</small><strong><?= e($application['contact']) ?></strong></div><div><small>Email</small><strong><?= e($application['email']) ?></strong></div>
     <div class="detail-wide"><small>Address</small><strong><?= e($application['address']) ?></strong></div>
+    <div class="detail-wide business-location"><small>Captured location</small><?php if ($application['latitude'] !== null && $application['longitude'] !== null): ?><strong><?= e(number_format((float) $application['latitude'], 7)) ?>, <?= e(number_format((float) $application['longitude'], 7)) ?></strong><span><?= $application['location_accuracy_m'] !== null ? 'Accuracy ±' . e(number_format((float) $application['location_accuracy_m'], 0)) . ' m · ' : '' ?><a href="<?= e(openstreetmap_url($application['latitude'], $application['longitude'])) ?>" target="_blank" rel="noopener">Open map ↗</a></span><?php else: ?><strong>Not provided</strong><span>The written business address remains the official address.</span><?php endif; ?></div>
   </div></article>
   <aside class="panel"><div class="panel-header"><div><p class="eyebrow">Status log</p><h3>Processing history</h3></div></div><div class="history-list">
     <?php foreach ($history->fetchAll() as $entry): ?><div><span class="history-dot"></span><p><strong><?= e($entry['status']) ?></strong><small><?= e(date('M j, Y g:i A', strtotime($entry['created_at']))) ?><?= $entry['changed_by_name'] ? ' · ' . e($entry['changed_by_name']) : '' ?></small><?php if ($entry['notes']): ?><em><?= e($entry['notes']) ?></em><?php endif; ?></p></div><?php endforeach; ?>

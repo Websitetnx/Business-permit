@@ -4,6 +4,7 @@ require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/layout.php';
 $user = require_role('applicant');
 $errors = [];
+$location = posted_geolocation($_POST);
 $allowedBusinessTypes = ['Retail', 'Food and Beverage', 'Professional Services', 'Manufacturing', 'Other'];
 $allowedOrganizations = ['Sole Proprietorship', 'Partnership', 'Corporation', 'Cooperative'];
 
@@ -24,14 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen(preg_replace('/\D+/', '', $contact)) < 10) $errors[] = 'Enter a valid contact number.';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid contact email.';
     if (strlen($address) < 8) $errors[] = 'Enter the complete business address.';
+    if ($location['error']) $errors[] = $location['error'];
     if (!isset($_POST['declaration'])) $errors[] = 'Confirm the accuracy declaration before submitting.';
 
     if (!$errors) {
         $pdo = db();
         try {
             $pdo->beginTransaction();
-            $businessStatement = $pdo->prepare('INSERT INTO businesses (user_id, business_name, business_type, organization_type, tin, contact, email, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-            $businessStatement->execute([$user['id'], $businessName, $businessType, $organizationType, $tin, $contact, $email, $address]);
+            $businessStatement = $pdo->prepare('INSERT INTO businesses (user_id, business_name, business_type, organization_type, tin, contact, email, address, latitude, longitude, location_accuracy_m, location_captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $businessStatement->execute([$user['id'], $businessName, $businessType, $organizationType, $tin, $contact, $email, $address, $location['latitude'], $location['longitude'], $location['accuracy'], $location['latitude'] !== null ? date('Y-m-d H:i:s') : null]);
             $businessId = (int) $pdo->lastInsertId();
             $reference = create_reference($pdo);
             $applicationStatement = $pdo->prepare("INSERT INTO applications (user_id, business_id, reference, application_type, status, stage) VALUES (?, ?, ?, 'New', 'For Review', 1)");
@@ -69,6 +71,13 @@ render_app_header('New Business Permit', 'apply');
         <label class="field">TIN<input name="tin" required maxlength="15" value="<?= e($_POST['tin'] ?? '') ?>" placeholder="000-000-000-000"></label>
         <label class="field">Contact number<input name="contact" type="tel" required value="<?= e($_POST['contact'] ?? '') ?>" placeholder="09XX XXX XXXX"></label>
         <label class="field field-wide">Business address<input name="address" required value="<?= e($_POST['address'] ?? '') ?>" placeholder="Building, street, barangay, city"></label>
+        <div class="field field-wide geolocation-control">
+          <span>Business location <small>Optional</small></span>
+          <input type="hidden" name="latitude" value="<?= e($_POST['latitude'] ?? '') ?>">
+          <input type="hidden" name="longitude" value="<?= e($_POST['longitude'] ?? '') ?>">
+          <input type="hidden" name="location_accuracy_m" value="<?= e($_POST['location_accuracy_m'] ?? '') ?>">
+          <div><button class="button button-secondary geolocation-button" type="button" data-geolocate>⌖ Use current location</button><p class="location-status<?= $location['latitude'] !== null ? ' success' : '' ?>" data-location-status aria-live="polite"><?= $location['latitude'] !== null ? 'Location captured. You can capture it again if needed.' : 'Your browser will ask permission. Manual address entry remains available.' ?></p></div>
+        </div>
         <label class="field field-wide">Contact email<input name="email" type="email" required value="<?= e($_POST['email'] ?? $user['email']) ?>"></label>
       </div>
     </div>

@@ -5,6 +5,7 @@ require __DIR__ . '/includes/layout.php';
 $user = require_role('applicant');
 $pdo = db();
 $errors = [];
+$location = posted_geolocation($_POST);
 $record = null;
 $permitNumber = strtoupper(trim((string) ($_GET['permit_number'] ?? $_POST['permit_number'] ?? '')));
 
@@ -24,16 +25,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact = trim((string) ($_POST['contact'] ?? ''));
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
     $address = trim((string) ($_POST['address'] ?? ''));
+    $locationUpdated = ($_POST['location_updated'] ?? '') === '1';
     if (!is_numeric($grossSales) || (float) $grossSales < 0) $errors[] = 'Enter valid gross sales for the previous year.';
     if (strlen(preg_replace('/\D+/', '', $contact)) < 10) $errors[] = 'Enter a valid contact number.';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid contact email.';
     if (strlen($address) < 8) $errors[] = 'Enter the complete business address.';
+    if ($location['error']) $errors[] = $location['error'];
     if (!isset($_POST['declaration'])) $errors[] = 'Confirm the accuracy declaration before submitting.';
     if (!$errors && $record) {
         try {
             $pdo->beginTransaction();
-            $update = $pdo->prepare('UPDATE businesses SET contact = ?, email = ?, address = ? WHERE id = ? AND user_id = ?');
-            $update->execute([$contact, $email, $address, $record['id'], $user['id']]);
+            $update = $pdo->prepare('UPDATE businesses SET contact = ?, email = ?, address = ?, latitude = ?, longitude = ?, location_accuracy_m = ?, location_captured_at = CASE WHEN ? = 1 THEN NOW() ELSE location_captured_at END WHERE id = ? AND user_id = ?');
+            $update->execute([$contact, $email, $address, $location['latitude'], $location['longitude'], $location['accuracy'], $locationUpdated ? 1 : 0, $record['id'], $user['id']]);
             $reference = create_reference($pdo);
             $insert = $pdo->prepare("INSERT INTO applications (user_id, business_id, reference, permit_number, application_type, status, stage, gross_sales) VALUES (?, ?, ?, ?, 'Renewal', 'For Review', 1, ?)");
             $insert->execute([$user['id'], $record['id'], $reference, $record['permit_number'], $grossSales]);
@@ -63,7 +66,9 @@ render_app_header('Renew Business Permit', 'renew');
 <form method="post" enctype="multipart/form-data" class="renewal-application-form">
   <?= csrf_field() ?><input type="hidden" name="permit_number" value="<?= e($record['permit_number']) ?>">
   <article class="panel result-card"><div class="record-summary"><div><p class="eyebrow">Permit record found</p><h3><?= e($record['business_name']) ?></h3><p class="muted"><?= e($record['permit_number']) ?> · <?= e($record['address']) ?></p></div><span class="status approved">Active record</span></div>
-    <div class="form-grid no-side-padding"><label class="field">Gross sales for previous year<input name="gross_sales" inputmode="decimal" required value="<?= e($_POST['gross_sales'] ?? '') ?>" placeholder="0.00"></label><label class="field">Contact number<input name="contact" required value="<?= e($_POST['contact'] ?? $record['contact']) ?>"></label><label class="field">Email<input type="email" name="email" required value="<?= e($_POST['email'] ?? $record['email']) ?>"></label><label class="field field-wide">Business address<input name="address" required value="<?= e($_POST['address'] ?? $record['address']) ?>"></label></div>
+    <div class="form-grid no-side-padding"><label class="field">Gross sales for previous year<input name="gross_sales" inputmode="decimal" required value="<?= e($_POST['gross_sales'] ?? '') ?>" placeholder="0.00"></label><label class="field">Contact number<input name="contact" required value="<?= e($_POST['contact'] ?? $record['contact']) ?>"></label><label class="field">Email<input type="email" name="email" required value="<?= e($_POST['email'] ?? $record['email']) ?>"></label><label class="field field-wide">Business address<input name="address" required value="<?= e($_POST['address'] ?? $record['address']) ?>"></label>
+      <div class="field field-wide geolocation-control"><span>Business location <small>Optional</small></span><input type="hidden" name="latitude" value="<?= e($_POST['latitude'] ?? $record['latitude'] ?? '') ?>"><input type="hidden" name="longitude" value="<?= e($_POST['longitude'] ?? $record['longitude'] ?? '') ?>"><input type="hidden" name="location_accuracy_m" value="<?= e($_POST['location_accuracy_m'] ?? $record['location_accuracy_m'] ?? '') ?>"><input type="hidden" name="location_updated" value="<?= e($_POST['location_updated'] ?? '0') ?>"><div><button class="button button-secondary geolocation-button" type="button" data-geolocate>⌖ Update current location</button><p class="location-status<?= ($record['latitude'] ?? null) !== null ? ' success' : '' ?>" data-location-status aria-live="polite"><?= ($record['latitude'] ?? null) !== null ? 'A saved location is on file. Capture again to update it.' : 'Your browser will ask permission. Manual address entry remains available.' ?></p></div></div>
+    </div>
   </article>
   <article class="panel document-panel renewal-documents"><div class="panel-header"><div><p class="eyebrow">Renewal requirements</p><h3>Upload current documents</h3><p class="muted">Required documents and the occupancy alternative are validated again for this renewal.</p></div></div>
     <?php foreach ([[true, 'Standard requirements'], [false, 'Conditional requirements']] as [$required, $heading]): ?><div class="requirements-group <?= $required ? '' : 'conditional-group' ?>"><div class="requirements-heading"><div><h4><?= e($heading) ?></h4></div></div><div class="upload-grid"><?php foreach ($definitions as $field => [$label, $isRequired, $tag]): if ($isRequired !== $required) continue; ?><label class="upload-card"><span class="requirement-tag <?= $isRequired ? 'required-tag' : '' ?>"><?= e($tag) ?></span><span class="upload-icon">⇧</span><strong><?= e($label) ?></strong><small>PDF, JPG, or PNG · Maximum 5 MB</small><input name="<?= e($field) ?>" type="file" accept=".pdf,.jpg,.jpeg,.png" <?= $isRequired ? 'required' : '' ?>><em>Choose file</em><small class="error"></small></label><?php endforeach; ?></div><?php if (!$required): ?><div class="conditional-note"><strong>Occupancy reminder:</strong> Upload either the Occupancy Permit or the Affidavit of Undertaking alternative.</div><?php endif; ?></div><?php endforeach; ?>

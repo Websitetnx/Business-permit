@@ -19,6 +19,7 @@ ERMIT is a PHP 8 and MySQL application for applicant registration, secure sign-i
 - AI-assisted PDF/image requirement scanning with structured findings
 - Predictive workload, processing-time, backlog, and revision analytics
 - Optional AI management summaries based only on aggregate statistics
+- Optional applicant geolocation with accuracy data and administrator map verification
 - CSRF protection and prepared PDO statements
 
 ## Requirements
@@ -83,6 +84,18 @@ ALLOW_SENSITIVE_AI_SCAN=false
 Medical-result scanning is blocked by default. Enable it only after the LGU completes its privacy and legal review. Every API request uses `store: false`, but administrators must still confirm that sending a document to the configured API project is authorized. OpenAI documents its current retention behavior in its [data controls guide](https://developers.openai.com/api/docs/guides/your-data).
 
 The statistical forecast continues to work without an API key. The API is used for document interpretation and an optional narrative based only on aggregate, non-personal metrics. AI never approves or rejects permits.
+
+## Geolocation setup
+
+For an existing ERMIT database, import:
+
+```text
+database/migrations/003_geolocation.sql
+```
+
+Applicants can explicitly select **Use current location** on new applications and renewals. ERMIT saves latitude, longitude, device-reported accuracy, and capture time, then provides administrators with an OpenStreetMap link. The written address remains required and location is optional, so an applicant can continue if permission is denied or GPS is unavailable.
+
+Browser geolocation requires HTTPS in production. `http://localhost` is suitable for local development, but a hosted deployment must use a valid HTTPS certificate. No map or reverse-geocoding API key is required.
 
 ## Main database tables
 

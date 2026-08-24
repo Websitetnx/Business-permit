@@ -32,6 +32,59 @@ function setUploadState(input) {
 
 $$('input[type="file"]').forEach(input => input.addEventListener("change", () => setUploadState(input)));
 
+$$('[data-geolocate]').forEach(button => {
+  button.addEventListener("click", () => {
+    const form = button.closest("form");
+    const status = $('[data-location-status]', form);
+    const latitude = $('[name="latitude"]', form);
+    const longitude = $('[name="longitude"]', form);
+    const accuracy = $('[name="location_accuracy_m"]', form);
+    const locationUpdated = $('[name="location_updated"]', form);
+    const setStatus = (message, type = "") => {
+      status.textContent = message;
+      status.classList.toggle("success", type === "success");
+      status.classList.toggle("error", type === "error");
+    };
+
+    if (!window.isSecureContext) {
+      setStatus("Location access requires HTTPS or localhost. You can still enter the address manually.", "error");
+      return;
+    }
+    if (!navigator.geolocation) {
+      setStatus("This browser does not support location access. Enter the address manually.", "error");
+      return;
+    }
+
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    setStatus("Requesting your current location…");
+    navigator.geolocation.getCurrentPosition(position => {
+      latitude.value = position.coords.latitude.toFixed(7);
+      longitude.value = position.coords.longitude.toFixed(7);
+      accuracy.value = Number.isFinite(position.coords.accuracy) ? position.coords.accuracy.toFixed(2) : "";
+      if (locationUpdated) locationUpdated.value = "1";
+      const accuracyCopy = accuracy.value ? ` (accuracy ±${Math.round(Number(accuracy.value))} m)` : "";
+      setStatus(`Location captured${accuracyCopy}.`, "success");
+      button.textContent = "✓ Location captured";
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }, error => {
+      const messages = {
+        1: "Location permission was denied. Enter the address manually or allow location and try again.",
+        2: "Your current location is unavailable. Enter the address manually or try again.",
+        3: "Location request timed out. Enter the address manually or try again."
+      };
+      setStatus(messages[error.code] || "The location could not be captured. Enter the address manually.", "error");
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 30000
+    });
+  });
+});
+
 function fieldIsValid(field) {
   if (field.type === "file") {
     if (!setUploadState(field)) return false;
@@ -99,6 +152,9 @@ function buildReview() {
     const value = field.type === "file" ? (field.files?.[0]?.name || "Not provided — if applicable") : field.value;
     entries.push([label, value || "—"]);
   });
+  const latitude = $('[name="latitude"]', form)?.value;
+  const longitude = $('[name="longitude"]', form)?.value;
+  entries.push(["Business Location", latitude && longitude ? `${latitude}, ${longitude}` : "Not provided — optional"]);
   review.replaceChildren(...entries.map(([label, value]) => {
     const wrapper = document.createElement("div");
     const term = document.createElement("dt");

@@ -24,4 +24,5 @@ if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: same-origin');
+    header('Permissions-Policy: geolocation=(self)');
 }

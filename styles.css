@@ -316,6 +316,20 @@ td small { margin-top: 3px; color: var(--muted); }
 .role-badge.admin { color: #5d3b9a; background: #efe7ff; }
 .role-badge.applicant { color: #185aaf; background: #e6f1ff; }
 
+/* Applicant geolocation */
+.geolocation-control { padding: 14px; border: 1px solid #d4e2e9; border-radius: 12px; background: #f7fbfc; }
+.geolocation-control > span { color: var(--ink); font-size: 11px; font-weight: 800; }
+.geolocation-control > span small { margin-left: 5px; color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.geolocation-control > div { margin-top: 9px; display: flex; align-items: center; gap: 13px; }
+.geolocation-button { min-width: 180px; }
+.location-status { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.location-status.success { color: #08715f; font-weight: 750; }
+.location-status.error { color: #a4323e; font-weight: 750; }
+.business-location { padding: 13px 14px !important; border: 1px solid #d5e8eb; border-radius: 11px; background: #f3fafb; }
+.business-location span { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; }
+.business-location a { color: var(--blue); font-weight: 800; text-decoration: none; }
+.business-location a:hover { text-decoration: underline; }
+
 /* AI document scanning */
 .ai-provider { padding: 7px 10px; border: 1px solid #cce3e8; border-radius: 999px; color: var(--blue); background: #edf8fa; font-size: 10px; font-weight: 850; white-space: nowrap; }
 .ai-migration-alert { margin: 18px 20px 0; }
@@ -406,4 +420,6 @@ td small { margin-top: 3px; color: var(--muted); }
   .ai-field-grid { grid-template-columns: 1fr; }
   .chart-legend { display: none; }
   .forecast-chart { height: 260px; }
+  .geolocation-control > div { align-items: stretch; flex-direction: column; }
+  .geolocation-button { width: 100%; }
 }
