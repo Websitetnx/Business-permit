@@ -179,6 +179,25 @@ function create_permit_number(PDO $pdo): string
     return $number;
 }
 
+function create_receipt_number(PDO $pdo): string
+{
+    do {
+        $number = 'OR-' . date('Y') . '-' . random_int(100000, 999999);
+        $statement = $pdo->prepare('SELECT COUNT(*) FROM payments WHERE receipt_number = ?');
+        $statement->execute([$number]);
+    } while ((int) $statement->fetchColumn() > 0);
+    return $number;
+}
+
+function payment_status_class(string $status): string
+{
+    return match ($status) {
+        'Paid' => 'approved',
+        'Failed', 'Refunded' => 'revision',
+        default => 'review',
+    };
+}
+
 function document_definitions(): array
 {
     return [

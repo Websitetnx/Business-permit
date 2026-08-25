@@ -316,6 +316,58 @@ td small { margin-top: 3px; color: var(--muted); }
 .role-badge.admin { color: #5d3b9a; background: #efe7ff; }
 .role-badge.applicant { color: #185aaf; background: #e6f1ff; }
 
+/* Permit payment workflow */
+.payment-layout { grid-template-columns: 1.35fr .75fr; align-items: start; }
+.payment-form-panel, .payment-instructions { overflow: hidden; }
+.payment-form { padding: 0 24px 24px; }
+.payment-form > .button { margin-top: 18px; }
+.field-help { margin-top: 6px; color: var(--muted); font-size: 9px; }
+.payment-instructions ol { margin: 0; padding: 4px 32px 4px 45px; color: #425b69; font-size: 12px; line-height: 1.65; }
+.payment-instructions li { padding: 7px 0; }
+.payment-instructions .hint { margin: 18px 22px 22px; }
+.payment-success { margin: 24px; padding: 22px; border: 1px solid #bfe3d9; border-radius: 14px; display: flex; align-items: center; gap: 16px; color: #075e50; background: #eefaf7; }
+.payment-success > span { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center; color: white; background: #15927e; font-size: 20px; font-weight: 900; }
+.payment-success h3, .payment-success p { margin: 0; }
+.payment-success p { margin: 5px 0 13px; color: #527068; font-size: 11px; }
+.payment-success.compact { margin: 0; }
+.payment-list { display: grid; }
+.payment-list a { padding: 16px 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 13px; color: inherit; text-decoration: none; }
+.payment-list a:hover { background: #f7fbff; }
+.payment-list-icon { width: 39px; height: 39px; flex: 0 0 auto; border-radius: 11px; display: grid; place-items: center; color: #08715f; background: #ddf7f1; font-weight: 900; }
+.payment-list a > span:nth-child(2) { min-width: 0; flex: 1; }
+.payment-list strong, .payment-list small { display: block; }
+.payment-list small { margin-top: 4px; color: var(--muted); font-size: 10px; }
+.payment-list em { font-style: normal; }
+.applicant-payment-card, .admin-payment-panel { margin-top: 18px; overflow: hidden; }
+.payment-card-body { padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.payment-card-body strong { font-size: 13px; }
+.payment-card-body p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.release-guard { margin: 0; padding: 10px 12px; border-radius: 9px; color: #8b5919; background: #fff4df; font-size: 10px; font-weight: 750; }
+.admin-payment-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.payment-summary, .payment-actions { padding: 22px 24px; }
+.payment-actions { border-left: 1px solid var(--line); }
+.payment-summary dl { margin: 0 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.payment-summary dt, .receipt-card dt { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+.payment-summary dd, .receipt-card dd { margin: 4px 0 0; font-size: 12px; font-weight: 800; }
+.payment-summary .button { margin-right: 7px; margin-bottom: 7px; }
+.payment-actions form { display: grid; gap: 12px; }
+.reject-payment-form { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.button-danger { color: #a12c38; border-color: #e7c3c8; background: #fff5f6; }
+.button-danger:hover { color: white; background: #a12c38; }
+.receipt-toolbar { margin-bottom: 18px; display: flex; justify-content: space-between; }
+.receipt-card { max-width: 760px; margin: 0 auto; padding: 42px; position: relative; }
+.receipt-card header { padding-bottom: 24px; border-bottom: 2px solid var(--navy); display: flex; align-items: center; gap: 24px; }
+.receipt-card header img { width: 170px; height: auto; }
+.receipt-card header p, .receipt-card header h2 { margin: 0; }
+.receipt-card header p { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.receipt-card header h2 { margin-top: 5px; color: var(--navy); }
+.receipt-card header span { display: block; margin-top: 7px; color: var(--blue); font-size: 12px; font-weight: 850; }
+.receipt-paid { position: absolute; top: 136px; right: 42px; padding: 8px 14px; border: 2px solid #15927e; border-radius: 8px; color: #08715f; font-size: 18px; font-weight: 900; transform: rotate(-5deg); }
+.receipt-card dl { margin: 34px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.receipt-card .receipt-total { grid-column: 1 / -1; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; background: #edf7f9; }
+.receipt-card .receipt-total dd { color: var(--blue); font-size: 24px; }
+.receipt-card footer { padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.6; }
+
 /* Applicant geolocation */
 .geolocation-control { padding: 14px; border: 1px solid #d4e2e9; border-radius: 12px; background: #f7fbfc; }
 .geolocation-control > span { color: var(--ink); font-size: 11px; font-weight: 800; }
@@ -406,7 +458,8 @@ td small { margin-top: 3px; color: var(--muted); }
   .auth-visual h1 { font-size: 38px; }
   .auth-points { display: none; }
   .auth-card { padding: 34px 26px; }
-  .application-detail-grid, .review-layout, .user-layout { grid-template-columns: 1fr; }
+  .application-detail-grid, .review-layout, .user-layout, .payment-layout, .admin-payment-grid { grid-template-columns: 1fr; }
+  .payment-actions { border-left: 0; border-top: 1px solid var(--line); }
   .analytics-grid { grid-template-columns: 1fr; }
 }
 
@@ -422,4 +475,17 @@ td small { margin-top: 3px; color: var(--muted); }
   .forecast-chart { height: 260px; }
   .geolocation-control > div { align-items: stretch; flex-direction: column; }
   .geolocation-button { width: 100%; }
+  .payment-card-body { align-items: stretch; flex-direction: column; }
+  .payment-card-body .button { width: 100%; }
+  .receipt-card { padding: 24px; }
+  .receipt-card header { align-items: flex-start; flex-direction: column; }
+  .receipt-paid { top: 28px; right: 24px; }
+  .receipt-card dl { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .sidebar, .topbar, .receipt-toolbar, .toast-region { display: none !important; }
+  .main-content { margin: 0; }
+  .page { padding: 0; }
+  .receipt-card { max-width: none; border: 0; box-shadow: none; }
 }

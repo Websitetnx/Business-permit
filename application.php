@@ -29,12 +29,21 @@ $documents->execute([$id]);
 $history = db()->prepare('SELECT h.status, h.notes, h.created_at, u.name changed_by_name FROM application_status_history h LEFT JOIN users u ON u.id = h.changed_by WHERE h.application_id = ? ORDER BY h.created_at DESC, h.id DESC');
 $history->execute([$id]);
 $definitions = document_definitions();
+$paymentWorkflowReady = true;
+try {
+    $paymentStatement = db()->prepare('SELECT id, amount, payment_method, payment_reference, status, receipt_number, submitted_at, paid_at, admin_notes FROM payments WHERE application_id = ? LIMIT 1');
+    $paymentStatement->execute([$id]);
+    $payment = $paymentStatement->fetch() ?: null;
+} catch (PDOException) {
+    $paymentWorkflowReady = false;
+    $payment = null;
+}
 
 render_app_header('Application Details', $user['role'] === 'admin' ? 'review' : 'track');
 ?>
 <div class="section-heading"><div><p class="eyebrow"><?= e($application['reference']) ?></p><h2><?= e($application['business_name']) ?></h2><p class="muted"><?= e($application['application_type']) ?> application · Submitted <?= e(date('F j, Y', strtotime($application['submitted_at']))) ?></p></div><span class="status <?= e(status_class($application['status'])) ?>"><?= e($application['status']) ?></span></div>
 <ol class="timeline panel timeline-panel">
-  <?php foreach (['Submitted', 'Validation', 'Assessment', 'Permit release'] as $stage => $label): $step = $stage + 1; ?>
+  <?php foreach (['Submitted', 'Validation', 'Assessment & payment', 'Permit release'] as $stage => $label): $step = $stage + 1; ?>
     <li class="<?= $step < (int) $application['stage'] ? 'done' : ($step === (int) $application['stage'] ? 'current' : '') ?>"><span><?= $step <= (int) $application['stage'] ? '✓' : $step ?></span><?= e($label) ?></li>
   <?php endforeach; ?>
 </ol>
@@ -53,6 +62,12 @@ render_app_header('Application Details', $user['role'] === 'admin' ? 'review' : 
     <?php foreach ($history->fetchAll() as $entry): ?><div><span class="history-dot"></span><p><strong><?= e($entry['status']) ?></strong><small><?= e(date('M j, Y g:i A', strtotime($entry['created_at']))) ?><?= $entry['changed_by_name'] ? ' · ' . e($entry['changed_by_name']) : '' ?></small><?php if ($entry['notes']): ?><em><?= e($entry['notes']) ?></em><?php endif; ?></p></div><?php endforeach; ?>
   </div></aside>
 </div>
+
+<?php if (in_array($application['status'], ['Approved', 'Released'], true)): ?>
+<article class="panel applicant-payment-card"><div class="panel-header"><div><p class="eyebrow">Permit payment</p><h3><?= $payment ? 'Assessed fee: ₱' . e(number_format((float) $payment['amount'], 2)) : 'Awaiting fee assessment' ?></h3></div><?php if ($payment): ?><span class="status <?= e(payment_status_class($payment['status'])) ?>"><?= e($payment['status']) ?></span><?php endif; ?></div>
+  <?php if (!$paymentWorkflowReady): ?><div class="form-alert form-alert-error">The payment workflow requires database/migrations/004_payment_workflow.sql.</div><?php elseif (!$payment): ?><div class="payment-card-body"><p>BPLO approved the application but has not entered the assessed amount yet.</p></div><?php elseif ($payment['status'] === 'Paid'): ?><div class="payment-card-body"><div><strong>Payment verified</strong><p>Receipt <?= e($payment['receipt_number']) ?> is ready. BPLO can now release the permit.</p></div><a class="button" href="receipt.php?id=<?= (int) $payment['id'] ?>">View receipt</a></div><?php elseif ($payment['status'] === 'Failed'): ?><div class="payment-card-body"><div><strong>Payment correction required</strong><p><?= e($payment['admin_notes'] ?: 'Review and submit valid payment details again.') ?></p></div><a class="button" href="payment.php?application_id=<?= (int) $application['id'] ?>">Correct payment</a></div><?php elseif ($payment['submitted_at']): ?><div class="payment-card-body"><div><strong>Waiting for verification</strong><p>Your submitted payment is being checked. Permit release remains locked until verification.</p></div><a class="button button-secondary" href="payment.php?application_id=<?= (int) $application['id'] ?>">View payment</a></div><?php else: ?><div class="payment-card-body"><div><strong>Payment is now available</strong><p>Submit the assessed payment details for City Treasurer or administrator verification.</p></div><a class="button" href="payment.php?application_id=<?= (int) $application['id'] ?>">Pay permit fees →</a></div><?php endif; ?>
+</article>
+<?php endif; ?>
 
 <article class="panel document-panel"><div class="panel-header"><div><p class="eyebrow">Submitted requirements</p><h3>Uploaded documents</h3></div><span class="document-count"><?= $documents->rowCount() ?> files</span></div><div class="document-list">
   <?php foreach ($documents->fetchAll() as $document): $label = $definitions[$document['document_type']][0] ?? $document['document_type']; ?>

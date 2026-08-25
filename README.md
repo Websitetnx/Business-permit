@@ -16,6 +16,9 @@ ERMIT is a PHP 8 and MySQL application for applicant registration, secure sign-i
 - Protected document viewing through an authorized PHP endpoint
 - Applicant status timeline and administrator review queue
 - Approval, release, revision, rejection, notes, notifications, and audit logs
+- Post-approval fee assessment and payment submission
+- Protected payment-confirmation uploads and administrator verification
+- Release guard that requires verified payment and printable payment receipts
 - AI-assisted PDF/image requirement scanning with structured findings
 - Predictive workload, processing-time, backlog, and revision analytics
 - Optional AI management summaries based only on aggregate statistics
@@ -96,6 +99,18 @@ database/migrations/003_geolocation.sql
 Applicants can explicitly select **Use current location** on new applications and renewals. ERMIT saves latitude, longitude, device-reported accuracy, and capture time, then provides administrators with an OpenStreetMap link. The written address remains required and location is optional, so an applicant can continue if permission is denied or GPS is unavailable.
 
 Browser geolocation requires HTTPS in production. `http://localhost` is suitable for local development, but a hosted deployment must use a valid HTTPS certificate. No map or reverse-geocoding API key is required.
+
+## Payment workflow setup
+
+For an existing ERMIT database, import:
+
+```text
+database/migrations/004_payment_workflow.sql
+```
+
+When BPLO approves an application, the administrator must enter the assessed permit fee. The applicant can then choose an LGU-authorized payment method, enter the transaction or treasury reference, and upload payment confirmation. An administrator verifies or rejects the submission. A permit cannot be marked **Released** until the payment is verified as **Paid**. Verified payments receive a printable ERMIT receipt.
+
+This version records and verifies payment evidence; it does not directly transfer money or connect to a third-party payment processor. Configure and publish only payment channels officially authorized by the LGU.
 
 ## Main database tables
 

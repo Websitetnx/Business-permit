@@ -12,14 +12,30 @@ $statement->execute([$id]);
 $application = $statement->fetch();
 if (!$application) { http_response_code(404); exit('Application not found.'); }
 
+$paymentWorkflowReady = true;
+try {
+    $paymentStatement = $pdo->prepare('SELECT id, application_id, amount, payment_method, payer_name, payment_reference, status, proof_stored_name, receipt_number, submitted_at, paid_at, admin_notes FROM payments WHERE application_id = ? LIMIT 1');
+    $paymentStatement->execute([$id]);
+    $payment = $paymentStatement->fetch() ?: null;
+} catch (PDOException) {
+    $paymentWorkflowReady = false;
+    $payment = null;
+}
+
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $decision = (string) ($_POST['decision'] ?? '');
     $notes = trim((string) ($_POST['admin_notes'] ?? ''));
     $allowed = ['For Review', 'Needs Revision', 'Approved', 'Released', 'Rejected'];
+    $assessedAmountRaw = str_replace([',', '₱', ' '], '', (string) ($_POST['assessed_amount'] ?? ''));
     if (!in_array($decision, $allowed, true)) $errors[] = 'Select a valid decision.';
     if (in_array($decision, ['Needs Revision', 'Rejected'], true) && strlen($notes) < 5) $errors[] = 'Explain what the applicant must correct or why the application was rejected.';
+    if ($decision === 'Approved') {
+        if (!$paymentWorkflowReady) $errors[] = 'Import database/migrations/004_payment_workflow.sql before approving and assessing fees.';
+        if (!is_numeric($assessedAmountRaw) || (float) $assessedAmountRaw <= 0 || (float) $assessedAmountRaw > 99999999.99) $errors[] = 'Enter a valid assessed permit fee before approval.';
+    }
+    if ($decision === 'Released' && (!$payment || $payment['status'] !== 'Paid')) $errors[] = 'Payment must be verified as paid before releasing the permit.';
     if (!$errors) {
         try {
             $pdo->beginTransaction();
@@ -28,8 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stage = application_stage($decision);
             $update = $pdo->prepare('UPDATE applications SET status = ?, stage = ?, admin_notes = ?, permit_number = ?, reviewed_at = NOW(), approved_at = CASE WHEN ? IN (\'Approved\', \'Released\') THEN COALESCE(approved_at, NOW()) ELSE approved_at END WHERE id = ?');
             $update->execute([$decision, $stage, $notes ?: null, $permitNumber ?: null, $decision, $id]);
+            if ($decision === 'Approved') {
+                $assessment = $pdo->prepare("INSERT INTO payments (application_id, amount, status) VALUES (?, ?, 'Pending') ON DUPLICATE KEY UPDATE amount = IF(status = 'Paid', amount, VALUES(amount))");
+                $assessment->execute([$id, number_format((float) $assessedAmountRaw, 2, '.', '')]);
+            }
             record_status($pdo, (int) $id, $decision, (int) $user['id'], $notes);
-            $message = 'Application ' . $application['reference'] . ' was updated to ' . $decision . '.';
+            $message = $decision === 'Approved' ? 'Application ' . $application['reference'] . ' was approved. Assessed permit fee: ₱' . number_format((float) $assessedAmountRaw, 2) . '. Submit payment from your application page.' : 'Application ' . $application['reference'] . ' was updated to ' . $decision . '.';
             $notice = $pdo->prepare('INSERT INTO notifications (user_id, application_id, message) VALUES (?, ?, ?)');
             $notice->execute([$application['user_id'], $id, $message]);
             audit($pdo, (int) $user['id'], 'update_status_' . strtolower(str_replace(' ', '_', $decision)), 'application', (int) $id);
@@ -57,8 +77,13 @@ render_app_header('Review Application', 'review');
 ?>
 <div class="section-heading"><div><p class="eyebrow"><?= e($application['reference']) ?></p><h2><?= e($application['business_name']) ?></h2><p class="muted"><?= e($application['owner_name']) ?> · <?= e($application['application_type']) ?> application</p></div><span class="status <?= e(status_class($application['status'])) ?>"><?= e($application['status']) ?></span></div>
 <?php if ($errors): ?><div class="form-alert form-alert-error"><ul><?php foreach ($errors as $message): ?><li><?= e($message) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
+<?php if (!$paymentWorkflowReady): ?><div class="form-alert form-alert-error">Import <strong>database/migrations/004_payment_workflow.sql</strong> to enable fee assessment, payment verification, and receipts.</div><?php endif; ?>
 <div class="content-grid review-layout"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Applicant record</p><h3>Business information</h3></div><a href="<?= e(url('application.php?id=' . $id)) ?>">Full timeline</a></div><div class="detail-list detail-list-padded"><div><small>Applicant</small><strong><?= e($application['owner_name']) ?></strong></div><div><small>TIN</small><strong><?= e($application['tin']) ?></strong></div><div><small>Business type</small><strong><?= e($application['business_type']) ?></strong></div><div><small>Organization</small><strong><?= e($application['organization_type']) ?></strong></div><div><small>Contact</small><strong><?= e($application['contact']) ?></strong></div><div><small>Email</small><strong><?= e($application['email']) ?></strong></div><div class="detail-wide"><small>Address</small><strong><?= e($application['address']) ?></strong></div><div class="detail-wide business-location"><small>Applicant-captured location</small><?php if ($application['latitude'] !== null && $application['longitude'] !== null): ?><strong><?= e(number_format((float) $application['latitude'], 7)) ?>, <?= e(number_format((float) $application['longitude'], 7)) ?></strong><span><?= $application['location_accuracy_m'] !== null ? 'Accuracy ±' . e(number_format((float) $application['location_accuracy_m'], 0)) . ' m · ' : '' ?><a href="<?= e(openstreetmap_url($application['latitude'], $application['longitude'])) ?>" target="_blank" rel="noopener">Verify on map ↗</a></span><?php else: ?><strong>Not provided</strong><span>Verify using the written address and submitted documents.</span><?php endif; ?></div></div></article>
-<aside class="panel decision-panel"><div class="panel-header"><div><p class="eyebrow">LGU decision</p><h3>Update application</h3></div></div><form method="post" class="decision-form"><?= csrf_field() ?><input type="hidden" name="application_id" value="<?= (int) $id ?>"><label class="field">Decision<select name="decision" required><?php foreach (['For Review', 'Needs Revision', 'Approved', 'Released', 'Rejected'] as $option): ?><option <?= $application['status'] === $option ? 'selected' : '' ?>><?= e($option) ?></option><?php endforeach; ?></select></label><label class="field">BPLO notes<textarea name="admin_notes" rows="6" placeholder="Instructions or decision notes"><?= e($_POST['admin_notes'] ?? $application['admin_notes']) ?></textarea></label><button class="button" type="submit">Save decision</button></form></aside></div>
+<aside class="panel decision-panel"><div class="panel-header"><div><p class="eyebrow">LGU decision</p><h3>Update application</h3></div></div><form method="post" class="decision-form"><?= csrf_field() ?><input type="hidden" name="application_id" value="<?= (int) $id ?>"><label class="field">Decision<select name="decision" required><?php foreach (['For Review', 'Needs Revision', 'Approved', 'Released', 'Rejected'] as $option): ?><option <?= $application['status'] === $option ? 'selected' : '' ?> <?= $option === 'Released' && (!$payment || $payment['status'] !== 'Paid') ? 'disabled' : '' ?>><?= e($option) ?></option><?php endforeach; ?></select></label><label class="field">Assessed permit fee <small>Required when approving</small><input name="assessed_amount" inputmode="decimal" value="<?= e($_POST['assessed_amount'] ?? $payment['amount'] ?? '') ?>" placeholder="0.00"></label><label class="field">BPLO notes<textarea name="admin_notes" rows="6" placeholder="Instructions or decision notes"><?= e($_POST['admin_notes'] ?? $application['admin_notes']) ?></textarea></label><?php if (!$payment || $payment['status'] !== 'Paid'): ?><p class="release-guard">Permit release is locked until payment is verified.</p><?php endif; ?><button class="button" type="submit">Save decision</button></form></aside></div>
+<?php if ($paymentWorkflowReady && $payment): ?>
+<article class="panel admin-payment-panel"><div class="panel-header"><div><p class="eyebrow">City Treasurer workflow</p><h3>Payment verification</h3></div><span class="status <?= e(payment_status_class($payment['status'])) ?>"><?= e($payment['status']) ?></span></div><div class="admin-payment-grid"><div class="payment-summary"><dl><div><dt>Assessed amount</dt><dd>₱<?= e(number_format((float) $payment['amount'], 2)) ?></dd></div><div><dt>Method</dt><dd><?= e($payment['payment_method'] ?: 'Not submitted') ?></dd></div><div><dt>Payer</dt><dd><?= e($payment['payer_name'] ?: '—') ?></dd></div><div><dt>Reference</dt><dd><?= e($payment['payment_reference'] ?: '—') ?></dd></div><div><dt>Submitted</dt><dd><?= $payment['submitted_at'] ? e(date('M j, Y g:i A', strtotime($payment['submitted_at']))) : 'Awaiting applicant' ?></dd></div></dl><?php if ($payment['proof_stored_name']): ?><a class="button button-secondary" href="<?= e(url('payment-proof.php?id=' . $payment['id'])) ?>" target="_blank" rel="noopener">View payment confirmation ↗</a><?php endif; ?><?php if ($payment['status'] === 'Paid'): ?><a class="button" href="<?= e(url('receipt.php?id=' . $payment['id'])) ?>">View receipt</a><?php endif; ?></div>
+  <div class="payment-actions"><?php if ($payment['submitted_at'] && $payment['status'] === 'Pending'): ?><form method="post" action="payment-action.php"><?= csrf_field() ?><input type="hidden" name="payment_id" value="<?= (int) $payment['id'] ?>"><input type="hidden" name="action" value="verify"><label class="field">Verification note<textarea name="admin_notes" rows="3" placeholder="Treasury verification note"></textarea></label><button class="button" type="submit">Verify payment and issue receipt</button></form><form method="post" action="payment-action.php" class="reject-payment-form"><?= csrf_field() ?><input type="hidden" name="payment_id" value="<?= (int) $payment['id'] ?>"><input type="hidden" name="action" value="reject"><label class="field">Reason for rejection<textarea name="admin_notes" rows="3" required placeholder="Explain what must be corrected"></textarea></label><button class="button button-danger" type="submit">Reject payment proof</button></form><?php elseif (!$payment['submitted_at']): ?><div class="empty-state"><p>Waiting for the applicant to submit payment details.</p></div><?php elseif ($payment['status'] === 'Failed'): ?><div class="form-alert form-alert-error"><strong>Correction requested:</strong> <?= e($payment['admin_notes']) ?></div><?php else: ?><div class="payment-success compact"><span>✓</span><div><strong>Payment verified</strong><p><?= e($payment['receipt_number']) ?></p></div></div><?php endif; ?></div></div></article>
+<?php endif; ?>
 <article class="panel document-panel ai-document-panel">
   <div class="panel-header"><div><p class="eyebrow">AI-assisted verification</p><h3>Submitted requirements</h3><p class="muted">AI findings are advisory. Open and verify every original document before making a decision.</p></div><span class="ai-provider">OpenAI · <?= e(openai_settings()['model']) ?></span></div>
   <div class="ai-privacy-note"><strong>Privacy notice:</strong> Scanning sends the selected document to the configured OpenAI API project with response storage disabled. Confirm that your LGU is authorized to process it. Medical-result scanning is blocked unless explicitly enabled by the server administrator.</div>

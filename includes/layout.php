@@ -30,12 +30,14 @@ function render_app_header(string $title, string $active): void
           <a class="<?= $active === 'admin-dashboard' ? 'active' : '' ?>" href="<?= e(url('admin/index.php')) ?>"><span>⌂</span> Overview</a>
           <a class="<?= $active === 'review' ? 'active' : '' ?>" href="<?= e(url('admin/index.php#queue')) ?>"><span>☷</span> Review queue</a>
           <a class="<?= $active === 'analytics' ? 'active' : '' ?>" href="<?= e(url('admin/analytics.php')) ?>"><span>⌁</span> AI analytics</a>
+          <a class="<?= $active === 'payments' ? 'active' : '' ?>" href="<?= e(url('admin/payments.php')) ?>"><span>₱</span> Payments</a>
           <a class="<?= $active === 'users' ? 'active' : '' ?>" href="<?= e(url('admin/users.php')) ?>"><span>♙</span> User accounts</a>
         <?php else: ?>
           <a class="<?= $active === 'dashboard' ? 'active' : '' ?>" href="<?= e(url('dashboard.php')) ?>"><span>⌂</span> Dashboard</a>
           <a class="<?= $active === 'apply' ? 'active' : '' ?>" href="<?= e(url('apply.php')) ?>"><span>＋</span> New application</a>
           <a class="<?= $active === 'renew' ? 'active' : '' ?>" href="<?= e(url('renew.php')) ?>"><span>↻</span> Renew permit</a>
           <a class="<?= $active === 'track' ? 'active' : '' ?>" href="<?= e(url('track.php')) ?>"><span>◎</span> Track application</a>
+          <a class="<?= $active === 'payments' ? 'active' : '' ?>" href="<?= e(url('payments.php')) ?>"><span>₱</span> Payments</a>
         <?php endif; ?>
         <a href="<?= e(url('logout.php')) ?>"><span>⇥</span> Sign out</a>
       </nav>
