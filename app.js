@@ -152,6 +152,8 @@ function buildReview() {
     const value = field.type === "file" ? (field.files?.[0]?.name || "Not provided — if applicable") : field.value;
     entries.push([label, value || "—"]);
   });
+  const inspections = $$('input[type="checkbox"][name^="requires_"]:checked', form).map(field => humanize(field.name.replace(/^requires_/, '')));
+  entries.push(["Additional Inspections", inspections.length ? inspections.join(", ") : "None selected"]);
   const latitude = $('[name="latitude"]', form)?.value;
   const longitude = $('[name="longitude"]', form)?.value;
   entries.push(["Business Location", latitude && longitude ? `${latitude}, ${longitude}` : "Not provided — optional"]);

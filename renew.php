@@ -11,7 +11,7 @@ $permitNumber = strtoupper(trim((string) ($_GET['permit_number'] ?? $_POST['perm
 
 function find_renewable_permit(PDO $pdo, int $userId, string $permitNumber): ?array
 {
-    $statement = $pdo->prepare("SELECT a.id source_application_id, a.permit_number, b.* FROM applications a JOIN businesses b ON b.id = a.business_id WHERE a.user_id = ? AND a.permit_number = ? AND a.status IN ('Approved','Released') ORDER BY a.approved_at DESC, a.id DESC LIMIT 1");
+    $statement = $pdo->prepare("SELECT a.id source_application_id, a.permit_number, a.requires_building_inspection, a.requires_electrical_inspection, a.requires_plumbing_inspection, b.* FROM applications a JOIN businesses b ON b.id = a.business_id WHERE a.user_id = ? AND a.permit_number = ? AND a.status IN ('Approved','Released') ORDER BY a.approved_at DESC, a.id DESC LIMIT 1");
     $statement->execute([$userId, $permitNumber]);
     return $statement->fetch() ?: null;
 }
@@ -26,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
     $address = trim((string) ($_POST['address'] ?? ''));
     $locationUpdated = ($_POST['location_updated'] ?? '') === '1';
+    $requiresBuildingInspection = isset($_POST['requires_building_inspection']) ? 1 : 0;
+    $requiresElectricalInspection = isset($_POST['requires_electrical_inspection']) ? 1 : 0;
+    $requiresPlumbingInspection = isset($_POST['requires_plumbing_inspection']) ? 1 : 0;
     if (!is_numeric($grossSales) || (float) $grossSales < 0) $errors[] = 'Enter valid gross sales for the previous year.';
     if (strlen(preg_replace('/\D+/', '', $contact)) < 10) $errors[] = 'Enter a valid contact number.';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid contact email.';
@@ -38,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update = $pdo->prepare('UPDATE businesses SET contact = ?, email = ?, address = ?, latitude = ?, longitude = ?, location_accuracy_m = ?, location_captured_at = CASE WHEN ? = 1 THEN NOW() ELSE location_captured_at END WHERE id = ? AND user_id = ?');
             $update->execute([$contact, $email, $address, $location['latitude'], $location['longitude'], $location['accuracy'], $locationUpdated ? 1 : 0, $record['id'], $user['id']]);
             $reference = create_reference($pdo);
-            $insert = $pdo->prepare("INSERT INTO applications (user_id, business_id, reference, permit_number, application_type, status, stage, gross_sales) VALUES (?, ?, ?, ?, 'Renewal', 'For Review', 1, ?)");
-            $insert->execute([$user['id'], $record['id'], $reference, $record['permit_number'], $grossSales]);
+            $insert = $pdo->prepare("INSERT INTO applications (user_id, business_id, reference, permit_number, application_type, status, stage, gross_sales, requires_building_inspection, requires_electrical_inspection, requires_plumbing_inspection) VALUES (?, ?, ?, ?, 'Renewal', 'For Review', 1, ?, ?, ?, ?)");
+            $insert->execute([$user['id'], $record['id'], $reference, $record['permit_number'], $grossSales, $requiresBuildingInspection, $requiresElectricalInspection, $requiresPlumbingInspection]);
             $applicationId = (int) $pdo->lastInsertId();
             $uploadErrors = store_application_documents($pdo, $applicationId);
             if ($uploadErrors) throw new RuntimeException(implode(' ', $uploadErrors));
@@ -50,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('application.php?id=' . $applicationId);
         } catch (Throwable $exception) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            $errors[] = $exception instanceof RuntimeException ? $exception->getMessage() : 'The renewal could not be submitted.';
+            $errors[] = $exception instanceof RuntimeException ? $exception->getMessage() : ($exception instanceof PDOException ? 'Import database/migrations/005_fee_assessment_formula.sql, then submit the renewal again.' : 'The renewal could not be submitted.');
         }
     }
 }
@@ -66,8 +69,9 @@ render_app_header('Renew Business Permit', 'renew');
 <form method="post" enctype="multipart/form-data" class="renewal-application-form">
   <?= csrf_field() ?><input type="hidden" name="permit_number" value="<?= e($record['permit_number']) ?>">
   <article class="panel result-card"><div class="record-summary"><div><p class="eyebrow">Permit record found</p><h3><?= e($record['business_name']) ?></h3><p class="muted"><?= e($record['permit_number']) ?> · <?= e($record['address']) ?></p></div><span class="status approved">Active record</span></div>
-    <div class="form-grid no-side-padding"><label class="field">Gross sales for previous year<input name="gross_sales" inputmode="decimal" required value="<?= e($_POST['gross_sales'] ?? '') ?>" placeholder="0.00"></label><label class="field">Contact number<input name="contact" required value="<?= e($_POST['contact'] ?? $record['contact']) ?>"></label><label class="field">Email<input type="email" name="email" required value="<?= e($_POST['email'] ?? $record['email']) ?>"></label><label class="field field-wide">Business address<input name="address" required value="<?= e($_POST['address'] ?? $record['address']) ?>"></label>
+    <div class="form-grid no-side-padding"><label class="field">Gross sales for previous year<input name="gross_sales" inputmode="decimal" required value="<?= e($_POST['gross_sales'] ?? '') ?>" placeholder="0.00"><span class="field-help">Used as the renewal LBT basis.</span></label><label class="field">Contact number<input name="contact" required value="<?= e($_POST['contact'] ?? $record['contact']) ?>"></label><label class="field">Email<input type="email" name="email" required value="<?= e($_POST['email'] ?? $record['email']) ?>"></label><label class="field field-wide">Business address<input name="address" required value="<?= e($_POST['address'] ?? $record['address']) ?>"></label>
       <div class="field field-wide geolocation-control"><span>Business location <small>Optional</small></span><input type="hidden" name="latitude" value="<?= e($_POST['latitude'] ?? $record['latitude'] ?? '') ?>"><input type="hidden" name="longitude" value="<?= e($_POST['longitude'] ?? $record['longitude'] ?? '') ?>"><input type="hidden" name="location_accuracy_m" value="<?= e($_POST['location_accuracy_m'] ?? $record['location_accuracy_m'] ?? '') ?>"><input type="hidden" name="location_updated" value="<?= e($_POST['location_updated'] ?? '0') ?>"><div><button class="button button-secondary geolocation-button" type="button" data-geolocate>⌖ Update current location</button><p class="location-status<?= ($record['latitude'] ?? null) !== null ? ' success' : '' ?>" data-location-status aria-live="polite"><?= ($record['latitude'] ?? null) !== null ? 'A saved location is on file. Capture again to update it.' : 'Your browser will ask permission. Manual address entry remains available.' ?></p></div></div>
+      <fieldset class="field field-wide inspection-options"><legend>Additional inspections that apply</legend><p>Update these selections for the current renewal.</p><label><input type="checkbox" name="requires_building_inspection" value="1" <?= isset($_POST['requires_building_inspection']) || (!$_POST && !empty($record['requires_building_inspection'])) ? 'checked' : '' ?>> Building inspection</label><label><input type="checkbox" name="requires_electrical_inspection" value="1" <?= isset($_POST['requires_electrical_inspection']) || (!$_POST && !empty($record['requires_electrical_inspection'])) ? 'checked' : '' ?>> Electrical inspection</label><label><input type="checkbox" name="requires_plumbing_inspection" value="1" <?= isset($_POST['requires_plumbing_inspection']) || (!$_POST && !empty($record['requires_plumbing_inspection'])) ? 'checked' : '' ?>> Plumbing inspection</label></fieldset>
     </div>
   </article>
   <article class="panel document-panel renewal-documents"><div class="panel-header"><div><p class="eyebrow">Renewal requirements</p><h3>Upload current documents</h3><p class="muted">Required documents and the occupancy alternative are validated again for this renewal.</p></div></div>

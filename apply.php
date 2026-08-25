@@ -5,7 +5,7 @@ require __DIR__ . '/includes/layout.php';
 $user = require_role('applicant');
 $errors = [];
 $location = posted_geolocation($_POST);
-$allowedBusinessTypes = ['Retail', 'Food and Beverage', 'Professional Services', 'Manufacturing', 'Other'];
+$allowedBusinessTypes = business_type_options();
 $allowedOrganizations = ['Sole Proprietorship', 'Partnership', 'Corporation', 'Cooperative'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -17,6 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact = trim((string) ($_POST['contact'] ?? ''));
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
     $address = trim((string) ($_POST['address'] ?? ''));
+    $declaredCapital = str_replace([',', '₱', ' '], '', (string) ($_POST['declared_capital'] ?? ''));
+    $requiresBuildingInspection = isset($_POST['requires_building_inspection']) ? 1 : 0;
+    $requiresElectricalInspection = isset($_POST['requires_electrical_inspection']) ? 1 : 0;
+    $requiresPlumbingInspection = isset($_POST['requires_plumbing_inspection']) ? 1 : 0;
 
     if (strlen($businessName) < 2 || strlen($businessName) > 190) $errors[] = 'Enter the registered business name.';
     if (!in_array($businessType, $allowedBusinessTypes, true)) $errors[] = 'Select a valid business type.';
@@ -25,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen(preg_replace('/\D+/', '', $contact)) < 10) $errors[] = 'Enter a valid contact number.';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid contact email.';
     if (strlen($address) < 8) $errors[] = 'Enter the complete business address.';
+    if (!is_numeric($declaredCapital) || (float) $declaredCapital <= 0 || (float) $declaredCapital > 999999999999.99) $errors[] = 'Enter a valid declared capital investment.';
     if ($location['error']) $errors[] = $location['error'];
     if (!isset($_POST['declaration'])) $errors[] = 'Confirm the accuracy declaration before submitting.';
 
@@ -36,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $businessStatement->execute([$user['id'], $businessName, $businessType, $organizationType, $tin, $contact, $email, $address, $location['latitude'], $location['longitude'], $location['accuracy'], $location['latitude'] !== null ? date('Y-m-d H:i:s') : null]);
             $businessId = (int) $pdo->lastInsertId();
             $reference = create_reference($pdo);
-            $applicationStatement = $pdo->prepare("INSERT INTO applications (user_id, business_id, reference, application_type, status, stage) VALUES (?, ?, ?, 'New', 'For Review', 1)");
-            $applicationStatement->execute([$user['id'], $businessId, $reference]);
+            $applicationStatement = $pdo->prepare("INSERT INTO applications (user_id, business_id, reference, application_type, status, stage, declared_capital, requires_building_inspection, requires_electrical_inspection, requires_plumbing_inspection) VALUES (?, ?, ?, 'New', 'For Review', 1, ?, ?, ?, ?)");
+            $applicationStatement->execute([$user['id'], $businessId, $reference, number_format((float) $declaredCapital, 2, '.', ''), $requiresBuildingInspection, $requiresElectricalInspection, $requiresPlumbingInspection]);
             $applicationId = (int) $pdo->lastInsertId();
             $uploadErrors = store_application_documents($pdo, $applicationId);
             if ($uploadErrors) throw new RuntimeException(implode(' ', $uploadErrors));
@@ -48,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('application.php?id=' . $applicationId);
         } catch (Throwable $exception) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            $errors[] = $exception instanceof RuntimeException ? $exception->getMessage() : 'The application could not be submitted. Please try again.';
+            $errors[] = $exception instanceof RuntimeException ? $exception->getMessage() : ($exception instanceof PDOException ? 'Import database/migrations/005_fee_assessment_formula.sql, then submit the application again.' : 'The application could not be submitted. Please try again.');
         }
     }
 }
@@ -68,6 +73,7 @@ render_app_header('New Business Permit', 'apply');
         <label class="field field-wide">Registered business name<input name="business_name" autocomplete="organization" required maxlength="190" value="<?= e($_POST['business_name'] ?? '') ?>"></label>
         <label class="field">Business type<select name="business_type" required><option value="">Select type</option><?php foreach ($allowedBusinessTypes as $option): ?><option <?= ($_POST['business_type'] ?? '') === $option ? 'selected' : '' ?>><?= e($option) ?></option><?php endforeach; ?></select></label>
         <label class="field">Organization type<select name="organization_type" required><option value="">Select organization</option><?php foreach ($allowedOrganizations as $option): ?><option <?= ($_POST['organization_type'] ?? '') === $option ? 'selected' : '' ?>><?= e($option) ?></option><?php endforeach; ?></select></label>
+        <label class="field field-wide">Declared capital investment <small>Used as the new-application LBT basis</small><input name="declared_capital" inputmode="decimal" required value="<?= e($_POST['declared_capital'] ?? '') ?>" placeholder="0.00"><span class="field-help">Enter the amount declared in your registration and supporting records.</span></label>
         <label class="field">TIN<input name="tin" required maxlength="15" value="<?= e($_POST['tin'] ?? '') ?>" placeholder="000-000-000-000"></label>
         <label class="field">Contact number<input name="contact" type="tel" required value="<?= e($_POST['contact'] ?? '') ?>" placeholder="09XX XXX XXXX"></label>
         <label class="field field-wide">Business address<input name="address" required value="<?= e($_POST['address'] ?? '') ?>" placeholder="Building, street, barangay, city"></label>
@@ -79,6 +85,7 @@ render_app_header('New Business Permit', 'apply');
           <div><button class="button button-secondary geolocation-button" type="button" data-geolocate>⌖ Use current location</button><p class="location-status<?= $location['latitude'] !== null ? ' success' : '' ?>" data-location-status aria-live="polite"><?= $location['latitude'] !== null ? 'Location captured. You can capture it again if needed.' : 'Your browser will ask permission. Manual address entry remains available.' ?></p></div>
         </div>
         <label class="field field-wide">Contact email<input name="email" type="email" required value="<?= e($_POST['email'] ?? $user['email']) ?>"></label>
+        <fieldset class="field field-wide inspection-options"><legend>Additional inspections that apply</legend><p>Select only the inspections required for this business or premises.</p><label><input type="checkbox" name="requires_building_inspection" value="1" <?= isset($_POST['requires_building_inspection']) ? 'checked' : '' ?>> Building inspection</label><label><input type="checkbox" name="requires_electrical_inspection" value="1" <?= isset($_POST['requires_electrical_inspection']) ? 'checked' : '' ?>> Electrical inspection</label><label><input type="checkbox" name="requires_plumbing_inspection" value="1" <?= isset($_POST['requires_plumbing_inspection']) ? 'checked' : '' ?>> Plumbing inspection</label></fieldset>
       </div>
     </div>
     <div class="form-actions"><span></span><button class="button" type="button" data-next-step="2">Continue to requirements →</button></div>

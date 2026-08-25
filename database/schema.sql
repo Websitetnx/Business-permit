@@ -47,7 +47,11 @@ CREATE TABLE IF NOT EXISTS applications (
   application_type ENUM('New', 'Renewal') NOT NULL DEFAULT 'New',
   status ENUM('Submitted', 'For Review', 'Needs Revision', 'Approved', 'Released', 'Rejected') NOT NULL DEFAULT 'For Review',
   stage TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  declared_capital DECIMAL(14,2) NULL,
   gross_sales DECIMAL(14,2) NULL,
+  requires_building_inspection TINYINT(1) NOT NULL DEFAULT 0,
+  requires_electrical_inspection TINYINT(1) NOT NULL DEFAULT 0,
+  requires_plumbing_inspection TINYINT(1) NOT NULL DEFAULT 0,
   applicant_notes TEXT NULL,
   admin_notes TEXT NULL,
   submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -62,6 +66,42 @@ CREATE TABLE IF NOT EXISTS applications (
   INDEX idx_application_business (business_id),
   INDEX idx_application_submitted (submitted_at)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS permit_fee_settings (
+  id TINYINT UNSIGNED PRIMARY KEY,
+  lgu_name VARCHAR(190) NOT NULL DEFAULT 'Local Government Unit',
+  sanitary_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  zoning_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  general_inspection_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  building_inspection_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  electrical_inspection_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  plumbing_inspection_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  barangay_clearance_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  community_tax_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  bfp_rate_percent DECIMAL(7,4) NOT NULL DEFAULT 0.0000,
+  bfp_minimum_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  is_configured TINYINT(1) NOT NULL DEFAULT 0,
+  updated_by BIGINT UNSIGNED NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_fee_settings_user FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+INSERT INTO permit_fee_settings (id) VALUES (1)
+ON DUPLICATE KEY UPDATE id = VALUES(id);
+
+CREATE TABLE IF NOT EXISTS permit_business_type_rates (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  business_type VARCHAR(100) NOT NULL UNIQUE,
+  new_lbt_rate_percent DECIMAL(7,4) NOT NULL DEFAULT 0.0000,
+  renewal_lbt_rate_percent DECIMAL(7,4) NOT NULL DEFAULT 0.0000,
+  mayors_permit_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+INSERT INTO permit_business_type_rates (business_type) VALUES
+  ('Retail'), ('Food and Beverage'), ('Professional Services'), ('Manufacturing'), ('Other')
+ON DUPLICATE KEY UPDATE business_type = VALUES(business_type);
 
 CREATE TABLE IF NOT EXISTS application_documents (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -94,6 +134,9 @@ CREATE TABLE IF NOT EXISTS payments (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   application_id BIGINT UNSIGNED NOT NULL,
   amount DECIMAL(12,2) NOT NULL,
+  assessment_breakdown JSON NULL,
+  assessed_by BIGINT UNSIGNED NULL,
+  assessed_at TIMESTAMP NULL,
   payment_method ENUM('GCash', 'Maya', 'Bank Transfer', 'City Treasurer Counter') NULL,
   payer_name VARCHAR(120) NULL,
   payment_reference VARCHAR(100) NULL,
@@ -110,6 +153,7 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_payment_application FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+  CONSTRAINT fk_payment_assessor FOREIGN KEY (assessed_by) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_payment_verifier FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL,
   UNIQUE KEY uq_payment_application (application_id),
   UNIQUE KEY uq_payment_receipt (receipt_number),

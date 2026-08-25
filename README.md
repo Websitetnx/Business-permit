@@ -19,6 +19,8 @@ ERMIT is a PHP 8 and MySQL application for applicant registration, secure sign-i
 - Post-approval fee assessment and payment submission
 - Protected payment-confirmation uploads and administrator verification
 - Release guard that requires verified payment and printable payment receipts
+- Configurable Philippine permit-fee formula using declared capital or gross sales
+- Itemized LBT, Mayor's Permit, regulatory, inspection, BFP, barangay, and community-tax assessment
 - AI-assisted PDF/image requirement scanning with structured findings
 - Predictive workload, processing-time, backlog, and revision analytics
 - Optional AI management summaries based only on aggregate statistics
@@ -112,6 +114,29 @@ When BPLO approves an application, the administrator must enter the assessed per
 
 This version records and verifies payment evidence; it does not directly transfer money or connect to a third-party payment processor. Configure and publish only payment channels officially authorized by the LGU.
 
+## Automatic fee assessment setup
+
+For an existing ERMIT database, import:
+
+```text
+database/migrations/005_fee_assessment_formula.sql
+```
+
+Then sign in as an administrator and open **Fee settings**. Enter the rates and fixed charges from the current city or municipal tax ordinance. No tax or fee amount is assumed by the source code.
+
+For new applications, ERMIT uses declared capital as the configurable LBT basis. For renewals, it uses previous-year gross sales. The calculated total is:
+
+```text
+Total = Local Business Tax
+      + Mayor's Permit / license fee
+      + regulatory and applicable inspection fees
+      + BFP fire safety inspection fee
+      + barangay clearance fee
+      + community tax certificate fee
+```
+
+The BFP percentage is applied to the Mayor's Permit and regulatory-fee subtotal. If a fee is collected separately or does not apply in the LGU, set it to `0.00`. Each approved application stores an itemized assessment snapshot with its payment record, so later schedule changes do not rewrite past assessments. The result remains subject to BPLO and City Treasurer verification.
+
 ## Main database tables
 
 - `users`
@@ -120,6 +145,8 @@ This version records and verifies payment evidence; it does not directly transfe
 - `application_documents`
 - `application_status_history`
 - `payments`
+- `permit_fee_settings`
+- `permit_business_type_rates`
 - `notifications`
 - `audit_logs`
 - `document_ai_scans`

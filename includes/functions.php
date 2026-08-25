@@ -198,6 +198,80 @@ function payment_status_class(string $status): string
     };
 }
 
+function business_type_options(): array
+{
+    return ['Retail', 'Food and Beverage', 'Professional Services', 'Manufacturing', 'Other'];
+}
+
+function permit_fee_assessment(PDO $pdo, array $application): ?array
+{
+    $statement = $pdo->prepare('SELECT s.*, r.id rate_id, r.new_lbt_rate_percent, r.renewal_lbt_rate_percent, r.mayors_permit_fee FROM permit_fee_settings s JOIN permit_business_type_rates r ON r.business_type = ? AND r.is_active = 1 WHERE s.id = 1 AND s.is_configured = 1');
+    $statement->execute([(string) $application['business_type']]);
+    $rates = $statement->fetch();
+    if (!$rates) return null;
+
+    $isNew = ($application['application_type'] ?? 'New') === 'New';
+    $basis = (float) ($isNew ? ($application['declared_capital'] ?? 0) : ($application['gross_sales'] ?? 0));
+    if (($isNew && $basis <= 0) || (!$isNew && $basis < 0)) return null;
+    $lbtRate = (float) ($isNew ? $rates['new_lbt_rate_percent'] : $rates['renewal_lbt_rate_percent']);
+    $money = static fn(float $amount): float => round(max(0, $amount), 2);
+
+    $lbt = $money($basis * ($lbtRate / 100));
+    $mayor = $money((float) $rates['mayors_permit_fee']);
+    $sanitary = $money((float) $rates['sanitary_fee']);
+    $zoning = $money((float) $rates['zoning_fee']);
+    $generalInspection = $money((float) $rates['general_inspection_fee']);
+    $building = !empty($application['requires_building_inspection']) ? $money((float) $rates['building_inspection_fee']) : 0.0;
+    $electrical = !empty($application['requires_electrical_inspection']) ? $money((float) $rates['electrical_inspection_fee']) : 0.0;
+    $plumbing = !empty($application['requires_plumbing_inspection']) ? $money((float) $rates['plumbing_inspection_fee']) : 0.0;
+    $barangay = $money((float) $rates['barangay_clearance_fee']);
+    $communityTax = $money((float) $rates['community_tax_fee']);
+    $regulatory = $money($sanitary + $zoning + $generalInspection + $building + $electrical + $plumbing);
+    $fireBase = $money($mayor + $regulatory);
+    $fireRate = max(0, (float) $rates['bfp_rate_percent']);
+    $fireMinimum = $money((float) $rates['bfp_minimum_fee']);
+    $fireFee = $fireBase > 0 && ($fireRate > 0 || $fireMinimum > 0)
+        ? $money(max($fireBase * ($fireRate / 100), $fireMinimum))
+        : 0.0;
+
+    $components = [
+        ['key' => 'local_business_tax', 'label' => 'Local business tax (LBT)', 'amount' => $lbt],
+        ['key' => 'mayors_permit_fee', 'label' => "Mayor's permit / license fee", 'amount' => $mayor],
+        ['key' => 'sanitary_fee', 'label' => 'Sanitary / health inspection', 'amount' => $sanitary],
+        ['key' => 'zoning_fee', 'label' => 'Zoning / locational clearance', 'amount' => $zoning],
+        ['key' => 'general_inspection_fee', 'label' => 'General inspection fee', 'amount' => $generalInspection],
+    ];
+    if (!empty($application['requires_building_inspection'])) $components[] = ['key' => 'building_inspection_fee', 'label' => 'Building inspection', 'amount' => $building];
+    if (!empty($application['requires_electrical_inspection'])) $components[] = ['key' => 'electrical_inspection_fee', 'label' => 'Electrical inspection', 'amount' => $electrical];
+    if (!empty($application['requires_plumbing_inspection'])) $components[] = ['key' => 'plumbing_inspection_fee', 'label' => 'Plumbing inspection', 'amount' => $plumbing];
+    $components[] = ['key' => 'fire_safety_inspection_fee', 'label' => 'BFP fire safety inspection fee', 'amount' => $fireFee];
+    $components[] = ['key' => 'barangay_clearance_fee', 'label' => 'Barangay clearance', 'amount' => $barangay];
+    $components[] = ['key' => 'community_tax_fee', 'label' => 'Community tax certificate', 'amount' => $communityTax];
+
+    return [
+        'version' => 1,
+        'lgu_name' => (string) $rates['lgu_name'],
+        'application_type' => $isNew ? 'New' : 'Renewal',
+        'business_type' => (string) $application['business_type'],
+        'tax_basis_label' => $isNew ? 'Declared capital investment' : 'Previous-year gross sales',
+        'tax_basis' => $money($basis),
+        'lbt_rate_percent' => $lbtRate,
+        'bfp_rate_percent' => $fireRate,
+        'bfp_fee_base' => $fireBase,
+        'regulatory_subtotal' => $regulatory,
+        'components' => $components,
+        'total' => $money(array_sum(array_column($components, 'amount'))),
+        'calculated_at' => date(DATE_ATOM),
+    ];
+}
+
+function decoded_fee_breakdown(mixed $value): ?array
+{
+    if (!is_string($value) || trim($value) === '') return null;
+    $decoded = json_decode($value, true);
+    return is_array($decoded) && isset($decoded['components'], $decoded['total']) ? $decoded : null;
+}
+
 function document_definitions(): array
 {
     return [

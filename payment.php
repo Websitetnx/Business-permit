@@ -8,7 +8,7 @@ $applicationId = filter_input(INPUT_GET, 'application_id', FILTER_VALIDATE_INT) 
 if (!$applicationId) { http_response_code(404); exit('Payment record not found.'); }
 
 try {
-    $statement = $pdo->prepare('SELECT a.id application_id, a.reference application_reference, a.status application_status, a.user_id, b.business_name, p.id, p.amount, p.payment_method, p.payer_name, p.payment_reference, p.status, p.proof_original_name, p.proof_stored_name, p.proof_mime_type, p.receipt_number, p.submitted_at, p.paid_at, p.admin_notes FROM applications a JOIN businesses b ON b.id = a.business_id LEFT JOIN payments p ON p.application_id = a.id WHERE a.id = ? AND a.user_id = ?');
+    $statement = $pdo->prepare('SELECT a.id application_id, a.reference application_reference, a.status application_status, a.user_id, b.business_name, p.* FROM applications a JOIN businesses b ON b.id = a.business_id LEFT JOIN payments p ON p.application_id = a.id WHERE a.id = ? AND a.user_id = ?');
     $statement->execute([$applicationId, $user['id']]);
 } catch (PDOException) {
     flash('error', 'Import database/migrations/004_payment_workflow.sql before using permit payments.');
@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $statement->execute([$applicationId, $user['id']]);
 $payment = $statement->fetch();
+$feeBreakdown = decoded_fee_breakdown($payment['assessment_breakdown'] ?? null);
 render_app_header('Permit Payment', 'payments');
 ?>
 <div class="section-heading"><div><p class="eyebrow"><?= e($payment['application_reference']) ?></p><h2>Pay assessed permit fees</h2><p class="muted"><?= e($payment['business_name']) ?></p></div><?php if ($payment['id']): ?><span class="status <?= e(payment_status_class($payment['status'])) ?>"><?= e($payment['status']) ?></span><?php endif; ?></div>
@@ -98,6 +99,7 @@ render_app_header('Permit Payment', 'payments');
 <?php else: ?>
   <div class="content-grid payment-layout">
     <article class="panel payment-form-panel"><div class="panel-header"><div><p class="eyebrow">Amount due</p><h3>₱<?= e(number_format((float) $payment['amount'], 2)) ?></h3></div></div>
+      <?php if ($feeBreakdown): ?><div class="applicant-fee-breakdown"><div><strong>Official assessment breakdown</strong><small><?= e($feeBreakdown['lgu_name']) ?> · <?= e($feeBreakdown['tax_basis_label']) ?> ₱<?= e(number_format((float) $feeBreakdown['tax_basis'], 2)) ?></small></div><dl><?php foreach ($feeBreakdown['components'] as $component): ?><div><dt><?= e($component['label']) ?></dt><dd>₱<?= e(number_format((float) $component['amount'], 2)) ?></dd></div><?php endforeach; ?><div class="fee-total"><dt>Total amount due</dt><dd>₱<?= e(number_format((float) $feeBreakdown['total'], 2)) ?></dd></div></dl><p>Assessment is based on the LGU schedule saved by BPLO. Contact the BPLO or City Treasurer if any business information is incorrect.</p></div><?php endif; ?>
       <?php if ($payment['status'] === 'Paid'): ?>
         <div class="payment-success"><span>✓</span><div><h3>Payment verified</h3><p>The payment was verified on <?= e(date('F j, Y g:i A', strtotime($payment['paid_at']))) ?>.</p><a class="button" href="receipt.php?id=<?= (int) $payment['id'] ?>">View payment receipt</a></div></div>
       <?php else: ?>

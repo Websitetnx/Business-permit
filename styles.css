@@ -322,6 +322,11 @@ td small { margin-top: 3px; color: var(--muted); }
 .payment-form { padding: 0 24px 24px; }
 .payment-form > .button { margin-top: 18px; }
 .field-help { margin-top: 6px; color: var(--muted); font-size: 9px; }
+.inspection-options { margin: 0; padding: 15px; border: 1px solid #d4e2e9; border-radius: 12px; background: #f8fbfc; }
+.inspection-options legend { padding: 0 6px; color: var(--ink); font-size: 11px; font-weight: 800; }
+.inspection-options p { margin: 0 0 10px; color: var(--muted); font-size: 10px; }
+.inspection-options label { margin-right: 18px; display: inline-flex; align-items: center; gap: 6px; color: #405966; font-size: 11px; font-weight: 700; }
+.inspection-options input { accent-color: var(--blue); }
 .payment-instructions ol { margin: 0; padding: 4px 32px 4px 45px; color: #425b69; font-size: 12px; line-height: 1.65; }
 .payment-instructions li { padding: 7px 0; }
 .payment-instructions .hint { margin: 18px 22px 22px; }
@@ -367,6 +372,42 @@ td small { margin-top: 3px; color: var(--muted); }
 .receipt-card .receipt-total { grid-column: 1 / -1; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; background: #edf7f9; }
 .receipt-card .receipt-total dd { color: var(--blue); font-size: 24px; }
 .receipt-card footer { padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.6; }
+
+/* Configurable permit fee assessment */
+.fee-settings-form { display: grid; gap: 18px; }
+.fee-settings-panel { overflow: hidden; }
+.fee-settings-panel .form-grid { padding-bottom: 24px; }
+.fee-rate-table { overflow-x: auto; }
+.fee-rate-header, .fee-rate-row { min-width: 720px; padding: 12px 20px; display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 12px; align-items: center; }
+.fee-rate-header { color: var(--muted); background: #f5f9fa; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+.fee-rate-row { border-top: 1px solid var(--line); }
+.fee-rate-row > strong { font-size: 11px; }
+.fee-rate-row input { min-width: 0; width: 100%; padding: 10px 11px; border: 1px solid #cfdbe6; border-radius: 9px; color: var(--ink); font: inherit; font-size: 11px; }
+.fee-rate-row input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(22,102,216,.11); }
+.formula-notice { padding: 17px 19px; border: 1px solid #c9e2e7; border-radius: 13px; display: grid; gap: 5px; color: #31515e; background: #f2fafb; }
+.formula-notice strong { color: var(--navy); font-size: 12px; }
+.formula-notice span { font-size: 11px; font-weight: 750; }
+.formula-notice small { color: var(--muted); line-height: 1.55; }
+.assessment-preview { margin: 18px 20px 0; padding: 17px; border: 1px solid #bfe3d9; border-radius: 13px; color: #214f49; background: #eefaf7; }
+.assessment-preview > div span, .assessment-preview > div strong, .assessment-preview > div small { display: block; }
+.assessment-preview > div span { font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.assessment-preview > div strong { margin: 4px 0; color: #08715f; font-size: 24px; }
+.assessment-preview > div small { color: #54726d; }
+.assessment-preview details { margin-top: 13px; padding-top: 11px; border-top: 1px solid #cbe6df; }
+.assessment-preview summary { font-size: 10px; font-weight: 850; cursor: pointer; }
+.assessment-preview dl, .applicant-fee-breakdown dl, .receipt-breakdown dl { margin: 9px 0 0; display: grid; gap: 7px; }
+.assessment-preview dl div, .applicant-fee-breakdown dl div, .receipt-breakdown dl div { display: flex; justify-content: space-between; gap: 12px; }
+.assessment-preview dt, .assessment-preview dd, .applicant-fee-breakdown dt, .applicant-fee-breakdown dd, .receipt-breakdown dt, .receipt-breakdown dd { margin: 0; font-size: 10px; }
+.assessment-preview dd, .applicant-fee-breakdown dd, .receipt-breakdown dd { font-weight: 800; white-space: nowrap; }
+.applicant-fee-breakdown { margin: 0 24px 22px; padding: 18px; border: 1px solid #d3e4e8; border-radius: 13px; background: #f7fbfc; }
+.applicant-fee-breakdown > div strong, .applicant-fee-breakdown > div small { display: block; }
+.applicant-fee-breakdown > div small { margin-top: 4px; color: var(--muted); font-size: 9px; }
+.applicant-fee-breakdown .fee-total { margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--blue); }
+.applicant-fee-breakdown > p { margin: 13px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.receipt-breakdown { padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fafcfd; }
+.receipt-breakdown > strong { color: var(--navy); font-size: 12px; }
+.receipt-breakdown dl { grid-template-columns: 1fr; }
+.receipt-breakdown dl div { padding-bottom: 5px; border-bottom: 1px dotted #d7e1e6; }
 
 /* Applicant geolocation */
 .geolocation-control { padding: 14px; border: 1px solid #d4e2e9; border-radius: 12px; background: #f7fbfc; }
